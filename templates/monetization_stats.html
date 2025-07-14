@@ -1,0 +1,19 @@
+<p><strong>Monetization Stats</strong></p>
+<table>
+    <thead>
+        <tr>
+            {% for col in monetization_stats[0].keys() %}
+            <th>{{ col }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in monetization_stats %}
+        <tr>
+            {% for val in row.values() %}
+            <td style="text-align:right;">{{ val }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

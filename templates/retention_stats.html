@@ -1,0 +1,19 @@
+<p><strong>Retention Stats</strong></p>
+<table>
+    <thead>
+        <tr>
+            {% for col in retention_stats[0].keys() %}
+            <th>{{ col }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in retention_stats %}
+        <tr>
+            {% for val in row.values() %}
+            <td style="text-align:right;">{{ val }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
