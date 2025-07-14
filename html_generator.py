@@ -31,21 +31,39 @@ class HTMLGenerator:
 
     def generate_htm_dict(self, df: pd.DataFrame, id: int, template_name: str, calc_session: str) -> Dict:
         if template_name == 'app_monetization_stats':
-            return {
-                'variation': df.index[id],
-                'members': int(df['members'].iloc[id]),
-                'subscribers': int(df['subscribers'].iloc[id]),
-                'accesses': int(df['accesses'].iloc[id]),
-                'instants': int(df['instants'].iloc[id]),
-                'trials': int(df['trials'].iloc[id]),
-                'ex_trials': int(df['ex trials'].iloc[id]),
-                'charged_trials': int(df['charged trials'].iloc[id]),
-                'buyers': int(df['buyers'].iloc[id]),
-                'charges': int(df['charges'].iloc[id]),
-                'revenue': f"${int(df['revenue'].iloc[id])}",
-                'cancels_14d': int(df['cancel 14d'].iloc[id]),
-                'refunds_14d': int(df['refund 14d'].iloc[id])
-            }
+            if df.index[id] == 'diff, %':
+                rows_dict: dict = {
+                    'variation': df.index[id],
+                    'members': f"""{Decimal(f"{df['members'].iloc[id]:.2g}"):f}%""",
+                    'subscribers': f"""{Decimal(f"{df['subscribers'].iloc[id]:.2g}"):f}%""",
+                    'accesses': f"""{Decimal(f"{df['accesses'].iloc[id]:.2g}"):f}%""",
+                    'instants': f"""{Decimal(f"{df['instants'].iloc[id]:.2g}"):f}%""",
+                    'trials': f"""{Decimal(f"{df['trials'].iloc[id]:.2g}"):f}%""",
+                    'ex_trials': f"""{Decimal(f"{df['ex trials'].iloc[id]:.2g}"):f}%""",
+                    'charged_trials': f"""{Decimal(f"{df['charged trials'].iloc[id]:.2g}"):f}%""",
+                    'buyers': f"""{Decimal(f"{df['buyers'].iloc[id]:.2g}"):f}%""",
+                    'charges': f"""{Decimal(f"{df['charges'].iloc[id]:.2g}"):f}%""",
+                    'revenue': f"""{Decimal(f"{df['revenue'].iloc[id]:.2g}"):f}%""",
+                    'cancels_14d': f"""{Decimal(f"{df['cancel 14d'].iloc[id]:.2g}"):f}%""",
+                    'refunds_14d': f"""{Decimal(f"{df['refund 14d'].iloc[id]:.2g}"):f}%"""
+                }
+            else:   
+                rows_dict: dict = {
+                    'variation': df.index[id],
+                    'members': int(df['members'].iloc[id]),
+                    'subscribers': int(df['subscribers'].iloc[id]),
+                    'accesses': int(df['accesses'].iloc[id]),
+                    'instants': int(df['instants'].iloc[id]),
+                    'trials': int(df['trials'].iloc[id]),
+                    'ex_trials': int(df['ex trials'].iloc[id]),
+                    'charged_trials': int(df['charged trials'].iloc[id]),
+                    'buyers': int(df['buyers'].iloc[id]),
+                    'charges': int(df['charges'].iloc[id]),
+                    'revenue': f"${int(df['revenue'].iloc[id])}",
+                    'cancels_14d': int(df['cancel 14d'].iloc[id]),
+                    'refunds_14d': int(df['refund 14d'].iloc[id])
+                }
+            return rows_dict
         elif template_name == 'app_monetization_metrics':
             if df.index[id] == 'pvalue':
                 rows_dict: dict = {
@@ -114,13 +132,23 @@ class HTMLGenerator:
                 }
             return rows_dict
         elif template_name == 'retention_stats':
-            return {
-                'variation': df.index[id],
-                'members': int(df['members'].iloc[id]),
-                'retention 1d': int(df['retention 1d'].iloc[id]),
-                'retention 7d': int(df['retention 7d'].iloc[id]),
-                'retention 14d': int(df['retention 14d'].iloc[id])
-            }
+            if df.index[id] == 'diff, %':
+                rows_dict: dict = {
+                    'variation': df.index[id],
+                    'members': f"""{Decimal(f"{df['members'].iloc[id]:.2g}"):f}%""",
+                    'retention 1d': f"""{Decimal(f"{df['retention 1d'].iloc[id]:.2g}"):f}%""",
+                    'retention 7d': f"""{Decimal(f"{df['retention 7d'].iloc[id]:.2g}"):f}%""",
+                    'retention 14d': f"""{Decimal(f"{df['retention 14d'].iloc[id]:.2g}"):f}%"""
+                }
+            else:
+                rows_dict: dict = {
+                    'variation': df.index[id],
+                    'members': int(df['members'].iloc[id]),
+                    'retention 1d': int(df['retention 1d'].iloc[id]),
+                    'retention 7d': int(df['retention 7d'].iloc[id]),
+                    'retention 14d': int(df['retention 14d'].iloc[id])
+                }
+            return rows_dict
         elif template_name == 'retention_metrics':
             if df.index[id] == 'pvalue':
                 rows_dict: dict = {
