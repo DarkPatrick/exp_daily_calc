@@ -1,6 +1,8 @@
 from typing import Dict
 import pandas as pd
+import numpy as np
 from decimal import Decimal
+from jinja2 import Environment, FileSystemLoader
 
 
 
@@ -186,9 +188,27 @@ class HTMLGenerator:
                     'retention 14d, %': f"""{Decimal(f"{df['retention 14d, %'].iloc[id]:.3g}"):f}%"""
                 }
             return rows_dict
+        elif template_name == 'forecast':
+            if df.index[id] == 'diff, %':
+                rows_dict: dict = {
+                    'variation': 'diff',
+                    'members': f"""{Decimal(f"{df['members'].iloc[id]:.2g}"):f}%""",
+                    'accesses': f"""{Decimal(f"{df['accesses'].iloc[id]:.2g}"):f}%""",
+                    'charges': f"""{Decimal(f"{df['charges'].iloc[id]:.2g}"):f}%""",
+                    'revenue': f"""{Decimal(f"{df['revenue'].iloc[id]:.2g}"):f}%"""
+                }
+            else:   
+                rows_dict: dict = {
+                    'variation': df.index[id],
+                    'members': int(df['members'].iloc[id]),
+                    'accesses': int(df['accesses'].iloc[id]),
+                    'charges': int(df['charges'].iloc[id]),
+                    'revenue': f"${int(df['revenue'].iloc[id])}"
+                }
+            return rows_dict
 
 
-    def generate_html(self, df: pd.DataFrame, template_name: str, calc_session: str) -> str:
+    def generate_html_results_table(self, df: pd.DataFrame, template_name: str, calc_session: str) -> str:
         htm_rows = ''
         html_content = ''
         for id in range(len(df.index)):
@@ -211,3 +231,56 @@ class HTMLGenerator:
 
         return html_content
 
+    def generate_exp_results_header(self, exp_info) -> str:
+        # convert np.int64(1748854633) to datetime string
+        date_start = pd.to_datetime(exp_info['date_start'], unit='s', utc=True)
+        date_end = pd.to_datetime(exp_info['date_end'], unit='s', utc=True)
+        # load the template
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('exp_header.html')
+        html_content = template.render(
+            exp_id=exp_info['id'],
+            start_date=date_start.strftime('%Y-%m-%d'),
+            end_date=date_end.strftime('%Y-%m-%d'),
+            exposure_event=exp_info['experiment_event_start']
+        )
+        return html_content
+
+
+    def generate_html_header_table(self, df: pd.DataFrame) -> str:
+        platforms_list = ['iOS', 'Android']
+        branches = ['A', 'B', 'C']
+
+        platforms = []
+        for plat in platforms_list:
+            design_duration = np.random.randint(5, 11)
+            experiment_duration = np.random.randint(3, 13)
+            design_samples = {b: np.random.randint(100000, 200000) for b in branches}
+            exp_samples    = {b: np.random.randint(80000, 200000)  for b in branches}
+            platforms.append({
+                'name': plat,
+                'design':     {'duration': design_duration,   'samples': design_samples},
+                'experiment': {'duration': experiment_duration, 'samples': exp_samples}
+            })
+
+        default_checks = {
+            'no_visible_bugs': True,
+            'no_external_effects': True
+        }
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('design_vs_reality.html')
+        html_content = template.render(platforms=platforms, branches=branches, default_checks=default_checks)
+        # html_content = template.render()
+        return html_content
+
+    def generate_decision_section(self) -> str:
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('decision.html')
+        html_content = template.render()
+        return html_content
+
+    def generate_forecast_section(self, exp_info: dict) -> str:
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('forecast.html')
+        html_content = template.render(exp_info=exp_info)
+        return html_content

@@ -1,0 +1,123 @@
+{% macro random_string(length) -%}
+  {%- set ns = namespace(result='') -%}
+  {%- for _ in range(length) -%}
+    {%- set ns.result = ns.result + ("0123456789abcdef"|random) -%}
+  {%- endfor -%}
+  {{- ns.result -}}
+{%- endmacro -%}
+
+{% macro random_guid() -%}
+  {{- random_string(8)
+     ~ "-" ~ random_string(4)
+     ~ "-" ~ random_string(4)
+     ~ "-" ~ random_string(4)
+     ~ "-" ~ random_string(12) -}}
+{%- endmacro -%}
+<h2>Design vs Reality check</h2>
+<table border="1" cellspacing="0" cellpadding="4">
+    <thead>
+        <tr>
+        <th rowspan="2"
+            style="text-align:left"
+            class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff"
+            bgcolor="#eae6ff">
+            Platform
+        </th>
+        <th rowspan="2"
+            style="text-align:left"
+            class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff"
+            bgcolor="#eae6ff">
+            Type
+        </th>
+        <th rowspan="2" 
+            style="text-align:left"
+            class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff"
+            bgcolor="#eae6ff">
+            Duration (days)
+        </th>
+        <th colspan="{{ branches|length }}" 
+            style="text-align:left"
+            class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff"
+            bgcolor="#eae6ff">
+            Sample size</th>
+        <th rowspan="2" style="text-align:left" class="highlight-#eae6ff confluenceTd" data-highlight-colour="#eae6ff" bgcolor="#eae6ff">Other</th>
+    </tr>
+    <tr>
+        {% for br in branches %}
+            <th style="text-align:left"
+            class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff"
+            bgcolor="#eae6ff">
+            {{ br }}
+    </th>
+        {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+        {% for platform in platforms %}
+        <tr>
+            <td rowspan="3" style="text-align:left" class="highlight-#eae6ff confluenceTd" data-highlight-colour="#eae6ff" bgcolor="#eae6ff">{{ platform.name }}</td>
+            <td style="text-align:left" class="highlight-#eae6ff confluenceTd" data-highlight-colour="#eae6ff" bgcolor="#eae6ff">Design</td>
+            <td style="text-align:right">{{ platform.design.duration }}</td>
+            {% for br in branches %}
+            <td style="text-align:right">{{ platform.design.samples[br] }}</td>
+            {% endfor %}
+            <td rowspan="3" valign="top">
+            <ac:task-list>
+                <ac:task>
+                    <ac:task-id>{{ random_guid() }}</ac:task-id>
+                    <ac:task-status>{% if default_checks.no_visible_bugs %}complete{% else %}incomplete{% endif %}</ac:task-status>
+                    <ac:task-body>No visible bugs were found throughout the experiment</ac:task-body>
+                </ac:task>
+                <ac:task>
+                    <ac:task-id>{{ random_guid() }}</ac:task-id>
+                    <ac:task-status>{% if default_checks.no_external_effects %}complete{% else %}incomplete{% endif %}</ac:task-status>
+                    <ac:task-body>No external effects are visible</ac:task-body>
+                </ac:task>
+            </ac:task-list>
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align:left" class="highlight-#eae6ff confluenceTd" data-highlight-colour="#eae6ff" bgcolor="#eae6ff">Experiment</td>
+            <td style="text-align:right">{{ platform.experiment.duration }}</td>
+            {% for br in branches %}
+            <td style="text-align:right">{{ platform.experiment.samples[br] }}</td>
+            {% endfor %}
+        </tr>
+        <tr>
+            <td style="text-align:left" class="highlight-#eae6ff confluenceTd" data-highlight-colour="#eae6ff" bgcolor="#eae6ff">Checks</td>
+            <td colspan="1" style="text-align:right">
+            {% set ok_duration = platform.experiment.duration >= platform.design.duration %}
+            <ac:task-list>
+                <ac:task>
+                    <ac:task-id>{{ random_guid() }}</ac:task-id>
+                    <ac:task-status>{% if ok_duration %}complete{% else %}incomplete{% endif %}</ac:task-status>
+                    <ac:task-body>duration of exp ≥ design</ac:task-body>
+                </ac:task>
+            </ac:task-list>
+            </td>
+            <td colspan="{{branches|length }}" style="text-align:right">
+            {% set ab_ok = true %}
+            {% for br in branches[1:] %}
+                {% set diff = (platform.experiment.samples[br] - platform.experiment.samples[branches[0]]) 
+                            / platform.experiment.samples[branches[0]] %}
+                {% if diff > 0.05 or diff < -0.05 %}
+                {% set ab_ok = false %}
+                {% endif %}
+            {% endfor %}
+            <ac:task-list>
+                <ac:task>
+                    <ac:task-id>{{ random_guid() }}</ac:task-id>
+                    <ac:task-status>{% if ab_ok %}complete{% else %}incomplete{% endif %}</ac:task-status>
+                    <ac:task-body>A/B balance is maintained</ac:task-body>
+                </ac:task>
+            </ac:task-list>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

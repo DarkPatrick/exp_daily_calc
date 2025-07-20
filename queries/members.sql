@@ -58,6 +58,7 @@ select
     end as unified_id,
     argMinIf(session_id, datetime, session_id > 0) as session_id,
     min(toUnixTimestamp(datetime)) AS exp_start_dt,
+    -- min(toUnixTimestamp(datetime - interval 6 hour)) AS exp_start_dt,
     argMin(rights,datetime) AS rights,
     argMin(country,datetime) AS country,
     argMin(source, datetime) as source,
@@ -92,8 +93,6 @@ and
     has(experiments.id, {exp_id})
 and
     unified_id > 0
--- and
---     payment_account_id > 0
 and (
     '{exposure_event}' = 'App Experiment Start' and event = 'App Experiment Start' and item_id = {exp_id}
     or '{exposure_event}' != 'App Experiment Start' and event = '{exposure_event}'
@@ -116,8 +115,6 @@ group by
     variation,
     unified_id
 having
---     session_id > 0
--- and
     ('{source}' = 'All' or '{source}' = source)
 and
     {pro_rights} and {edu_rights} and {sing_rights} and {practice_rights} and {book_rights}

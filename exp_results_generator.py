@@ -3,10 +3,7 @@ import pandas as pd
 import os
 
 from df_processing import DF_Processor
-from metric_calculator import (
-    calc_monetization_cumulatives,
-    calc_retention_cumulatives
-)
+from metric_calculator import calc_monetization_cumulatives, calc_retention_cumulatives
 from plot_builder import PlotBuilder
 from sql_worker import SqlWorker
 from stats import Stats
@@ -29,6 +26,7 @@ class ExpResultsGenerator:
     def generate_cum_files(self) -> Dict[str, pd.DataFrame]:
         monetization_data_df = self.db.get_exp_monetization_data(self.exp_info)
         retention_data_df = self.db.get_exp_retention_data(self.exp_info)
+        dau_data_df = self.db.get_dau_data(self.exp_info)
 
         monetization_results_df = calc_monetization_cumulatives(monetization_data_df)
         retention_result_df = calc_retention_cumulatives(retention_data_df)
@@ -36,8 +34,14 @@ class ExpResultsGenerator:
         monetization_results_df.to_csv(f"{self.results_path}monetization_result.csv", index=False)
         retention_result_df.to_csv(f"{self.results_path}retention_result.csv", index=False)
 
+        # print(dau_data_df)
+        # dau_data_df = dau_data_df.groupby('dt')['dau'].mean()
+        # dau_data_df['dau'].mean()
+        dau_data_df.to_csv(f"{self.results_path}dau_data.csv", index=True)
+
         return {
             'monetization': monetization_results_df,
+            'dau': dau_data_df['dau'].mean(),
             'retention': retention_result_df
         }
 
@@ -63,12 +67,13 @@ class ExpResultsGenerator:
 
 
     def get_exp_all_calculations(self):
-        self.generate_cum_files()
+        cum_files = self.generate_cum_files()
         monetization_res = self.generate_results_dfs(f'{self.results_path}monetization_result.csv', 'monetization')
         retention_res = self.generate_results_dfs(f'{self.results_path}retention_result.csv', 'retention')
         self.plot_builder.save_plots(monetization_res['metrics'])
         self.plot_builder.save_plots(retention_res['metrics'])
         return {
             'monetization': monetization_res,
+            'dau': cum_files['dau'],
             'retention': retention_res
         }
