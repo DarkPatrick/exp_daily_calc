@@ -91,7 +91,8 @@ from (
     having
         (lower(funnel_source) not like 'email%' or funnel_source in ('email_reg_offer', 'email_auth_offer'))
     and ('{funnel_source_include}' = '' or funnel_source in ('{funnel_source_include}'))
-    and ('{funnel_source_exclude}' = '' or funnel_source not in ('{funnel_source_exclude}'))
+    -- and ({funnel_source_exclude} = '' or funnel_source not in ({funnel_source_exclude}))
+    and (funnel_source not in ({funnel_source_exclude}))
     and
         ({custom_sub_having})
     -- and

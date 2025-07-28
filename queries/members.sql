@@ -51,11 +51,11 @@
 -- union all 
 select
     experiments.variation[indexOf(experiments.id, {exp_id})] as variation,
-    -- unified_id,
-    case
-        when w.unified_id > 0 and w.unified_id is not null then w.unified_id
-        else a.unified_id
-    end as unified_id,
+    unified_id,
+    -- case
+    --     when w.unified_id > 0 and w.unified_id is not null then w.unified_id
+    --     else a.unified_id
+    -- end as unified_id,
     argMinIf(session_id, datetime, session_id > 0) as session_id,
     min(toUnixTimestamp(datetime)) AS exp_start_dt,
     -- min(toUnixTimestamp(datetime - interval 6 hour)) AS exp_start_dt,
@@ -65,26 +65,26 @@ select
     argMin(os, datetime) as os
 from
     default.ug_rt_events_app as a
-left join (
-    select
-        unified_id,
-        splitByChar('.', params.str_value[indexOf(params.key, 'app_unified_id')]) as uid,
-        toInt64OrNull(uid[2] || uid[3]) as app_unified_id
-    from
-        default.ug_rt_events_web as w
-    where
-        date between toDate({datetime_start}) and toDate({datetime_end})
-    and
-        app_unified_id is not null
-    and
-        app_unified_id > 0
-    and
-        event = 'PURCHASE_SUCCESS'
-    and
-        ui = 'WebView'
-) as w
-on
-    a.unified_id = w.app_unified_id
+-- left join (
+--     select
+--         unified_id,
+--         splitByChar('.', params.str_value[indexOf(params.key, 'app_unified_id')]) as uid,
+--         toInt64OrNull(uid[2] || uid[3]) as app_unified_id
+--     from
+--         default.ug_rt_events_web as w
+--     where
+--         date between toDate({datetime_start}) and toDate({datetime_end})
+--     and
+--         app_unified_id is not null
+--     and
+--         app_unified_id > 0
+--     and
+--         event = 'PURCHASE_SUCCESS'
+--     and
+--         ui = 'WebView'
+-- ) as w
+-- on
+--     a.unified_id = w.app_unified_id
 where
     date between toDate({datetime_start}) and '{date}'
 and
@@ -101,6 +101,7 @@ and
     ('{include_values}' = '' or value in ('{include_values}'))
 and
     ('{exclude_values}' = '' or value not in ('{exclude_values}'))
+-- and value not in ('Tour Install', 'Tour Instant Offer')
 and
     multiIf(
         '{platform}' = 'Desktop',  platform = 1,

@@ -18,19 +18,16 @@ class SqlWorker():
             password=secrets["password"]
         )
 
-
     def get_exp_params(self, exp_info: dict, date: str, exp_end_dt: str) -> dict:
         return dict({
                 "exp_id": exp_info["id"],
                 "date": date,
                 'datetime_start': exp_info["date_start"],
                 'datetime_end': exp_end_dt,
-                # "exposure_event": "Purchase Process Finish",
-                "exposure_event": "App Experiment Start",
+                "exposure_event": exp_info["experiment_event_start"],
                 # "platform": "Mobile",
                 "platform": "all",
                 "include_values": "",
-                # "include_values": "Tour Install",
                 "exclude_values": "",
                 'pro_rights': self.generate_sql_rights_filter("pro", "Free"),
                 # 'pro_rights': self.generate_sql_rights_filter("pro", "Empty"),
@@ -41,17 +38,19 @@ class SqlWorker():
                 'book_rights': self.generate_sql_rights_filter("book", "All"),
                 "country": "all",
                 # "country": "US",
-                "source": "UGT_IOS",
-                # "source": "UGT_ANDROID",
+                "source": exp_info["calc_source"],
                 "custom_where": 1,
                 "custom_sub_where": 1,
                 'custom_having': 1,
                 "custom_sub_having": 1,
-                "funnel_source_include": "",
+                "funnel_source_include": "Tour Install",
+                # "funnel_source_include": "",
+                # "funnel_source_include": "Export2pdfDownload",
                 # "funnel_source_include": "AD Interstitial",
                 # "funnel_source_include": "Tour Instant Offer",
-                "funnel_source_exclude": ""
-                # "funnel_source_exclude": "AD Interstitial"
+                "funnel_source_exclude": "''"
+                # "funnel_source_exclude": "'Tour Install', 'Tour Instant Offer'"
+                # "funnel_source_exclude": "'AD Interstitial'"
             })
 
 
@@ -92,7 +91,8 @@ class SqlWorker():
             "variations": df.variations[0],
             "experiment_event_start": df.experiment_event_start[0],
             "configuration": df.configuration[0],
-            'clients_list': df.clients_list[0]
+            'clients_list': df.clients_list[0],
+            'clients_options': df.clients_options[0]
         }
         return exp_info
 
@@ -231,6 +231,7 @@ class SqlWorker():
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
             params["members"] = "members"
             params["retention_events"] = "'Tab Open', 'App Start', 'Courses Open', 'Shots Open', 'Tabs Open'"
+            # params["retention_events"] = "'Tab View', 'Home View'"
             df = self.get_exp_daily_retention_data(params)
             print("DAY", day)
             print(df)

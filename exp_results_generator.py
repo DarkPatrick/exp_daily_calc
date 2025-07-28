@@ -15,12 +15,12 @@ class ExpResultsGenerator:
         self.db: SqlWorker = sql_worker
         self.experiment_id: int = experiment_id
         self.exp_info: dict = sql_worker.get_experiment(self.experiment_id)
-        if not os.path.exists(f"exp_results/exp_{experiment_id}"):
-            os.makedirs(f"exp_results/exp_{experiment_id}")
-        if not os.path.exists(f"plots/exp_{experiment_id}"):
-            os.makedirs(f"plots/exp_{experiment_id}")
-        self.results_path = f"exp_results/exp_{experiment_id}/"
-        self.plot_builder = PlotBuilder(f"plots/exp_{experiment_id}/")
+        if not os.path.exists(f"exp_results/exp_{self.experiment_id}"):
+            os.makedirs(f"exp_results/exp_{self.experiment_id}")
+        if not os.path.exists(f"plots/exp_{self.experiment_id}"):
+            os.makedirs(f"plots/exp_{self.experiment_id}")
+        self.results_path = f"exp_results/exp_{self.experiment_id}/"
+        self.plot_builder = PlotBuilder(f"plots/exp_{self.experiment_id}/")
 
 
     def generate_cum_files(self) -> Dict[str, pd.DataFrame]:
@@ -67,6 +67,13 @@ class ExpResultsGenerator:
 
 
     def get_exp_all_calculations(self):
+        if not os.path.exists(f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}"):
+            os.makedirs(f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}")
+        if not os.path.exists(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}"):
+            os.makedirs(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}")
+        self.results_path = f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}/"
+        self.plot_builder = PlotBuilder(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}/")
+
         cum_files = self.generate_cum_files()
         monetization_res = self.generate_results_dfs(f'{self.results_path}monetization_result.csv', 'monetization')
         retention_res = self.generate_results_dfs(f'{self.results_path}retention_result.csv', 'retention')

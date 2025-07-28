@@ -1,0 +1,117 @@
+{# 
+  Jinja2‑шаблон для Confluence Storage Format.
+  Параметры:
+    platforms      – список имён платформ, напр. ['iOS','Android']
+    variations     – список вариаций, напр. ['control','variation 2',…]
+    data           – словарь: data[platform][variation][metric] → значение
+    diff_data      – словарь: diff_data[platform][metric] → значение diff для текущей variation
+    diff_colours   – словарь: diff_colours[platform][metric] → строка цвета, напр. '#e3fcef'
+#}
+
+<h2>Forecast (per day)</h2>
+<table class="wrapped confluenceTable">
+  <colgroup>
+    <col/>
+    {% for plat in platforms %}
+      {% if not loop.first %}
+        <col/>
+      {% endif %}
+      {% for i in range(4) %}<col/>{% endfor %}
+    {% endfor %}
+  </colgroup>
+  <tbody>
+    {# ======== шапка: только если платформ больше одной ======== #}
+    {% if platforms|length > 1 %}
+      {# считаем, на сколько строк span для разделителя #}
+      {% set total_body_rows = 1 + (variations|length - 1) * 2 %}
+      {% set sep_rowspan = 2 + total_body_rows %}
+
+      <tr>
+        <th class="highlight-#eae6ff confluenceTh"
+            data-highlight-colour="#eae6ff"
+            style="text-align:left;"><br/></th>
+        {% for plat in platforms %}
+          <th class="highlight-#eae6ff confluenceTh"
+              colspan="4"
+              data-highlight-colour="#eae6ff"
+              style="text-align:left;">
+            <p style="text-align:center">{{ plat }}</p>
+          </th>
+          {% if not loop.last %}
+            <th class="highlight-#eae6ff confluenceTh"
+                rowspan="{{ sep_rowspan }}"
+                data-highlight-colour="#eae6ff"
+                style="text-align:left;"><br/></th>
+          {% endif %}
+        {% endfor %}
+      </tr>
+      {% endif %}
+      <tr>
+        <th class="highlight-#eae6ff confluenceTh"
+            data-highlight-colour="#eae6ff"
+            style="text-align:left;">Variations</th>
+        {% for plat in platforms %}
+          {% for col in metrics %}
+            <th class="highlight-#eae6ff confluenceTh"
+                data-highlight-colour="#eae6ff"
+                style="text-align:left;">
+              <p style="text-align:center">{{ col }}</p>
+            </th>
+          {% endfor %}
+        {% endfor %}
+      </tr>
+
+    {# ======== первая строка: control ======== #}
+    <tr>
+      <td class="highlight-#eae6ff confluenceTd"
+          data-highlight-colour="#eae6ff"
+          style="text-align:left;">
+        <strong>{{ variations[0] }}</strong>
+      </td>
+      {% for plat in platforms %}
+        {% for col in metrics %}
+          <td class="confluenceTd" style="text-align:right;">
+            {{ data[plat][variations[0]][col] }}
+          </td>
+        {% endfor %}
+      {% endfor %}
+    </tr>
+
+    {# ======== далее по вариациям и diff ======== #}
+    {% for var in variations[1:] %}
+      <tr>
+        <td class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff"
+            style="text-align:left;">
+          <strong>{{ var }}</strong>
+        </td>
+        {% for plat in platforms %}
+          {% for col in metrics %}
+            <td class="confluenceTd" style="text-align:right;">
+              {{ data[plat][var][col] }}
+            </td>
+          {% endfor %}
+        {% endfor %}
+      </tr>
+      <tr>
+        <td class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff"
+            style="text-align:left;">
+          <strong>diff</strong>
+        </td>
+        {% for plat in platforms %}
+          {% for col in metrics %}
+            {# цвет фона берём из параметра diff_colours #}
+            {% set colour = diff_colours[var][plat][col] %}
+            <td class="highlight-{{ colour[1:] }} confluenceTd"
+                data-highlight-colour="{{ colour }}"
+                style="text-align:right; vertical-align:bottom; background-color:{{ colour }};">
+              {{ diff_data[var][plat][col] }}
+            </td>
+          {% endfor %}
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+\n\n

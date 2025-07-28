@@ -247,16 +247,19 @@ class HTMLGenerator:
         return html_content
 
 
-    def generate_html_header_table(self, df: pd.DataFrame) -> str:
-        platforms_list = ['iOS', 'Android']
-        branches = ['A', 'B', 'C']
+    def generate_html_header_table(self, exp_results: dict) -> str:
+        platforms_list = list(exp_results.keys())
+        variations = {}
+        for client in platforms_list:
+            variations[client] = [x for x in exp_results[client]['monetization']['cum_stats'].index if x != 'diff, %']
+        branches = max(variations.values(), key=len)
 
         platforms = []
         for plat in platforms_list:
             design_duration = np.random.randint(5, 11)
-            experiment_duration = np.random.randint(3, 13)
+            experiment_duration = exp_results[plat]['monetization']['stats'].cohort_date.nunique()
             design_samples = {b: np.random.randint(100000, 200000) for b in branches}
-            exp_samples    = {b: np.random.randint(80000, 200000)  for b in branches}
+            exp_samples    = {b: int(exp_results[plat]['monetization']['cum_stats']['members'][b]) for b in branches}
             platforms.append({
                 'name': plat,
                 'design':     {'duration': design_duration,   'samples': design_samples},
@@ -270,7 +273,6 @@ class HTMLGenerator:
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template('design_vs_reality.html')
         html_content = template.render(platforms=platforms, branches=branches, default_checks=default_checks)
-        # html_content = template.render()
         return html_content
 
     def generate_decision_section(self) -> str:
@@ -279,8 +281,81 @@ class HTMLGenerator:
         html_content = template.render()
         return html_content
 
-    def generate_forecast_section(self, exp_info: dict) -> str:
+    def generate_forecast_section(self, exp_info: dict, exp_results: dict) -> str:
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template('forecast.html')
-        html_content = template.render(exp_info=exp_info)
+        metrics = [exp_info['experiment_event_start'], 'Accesses', 'Charges', 'Revenue, $']
+        platforms_list = list(exp_results.keys())
+        variations = {}
+        forecast_data = {}
+        pvals = {}
+        for client in platforms_list:
+            variations[client] = [x for x in exp_results[client]['monetization']['cum_stats'].index if x != 'diff, %']    
+            forecast_temp_data = exp_results[client]['monetization']['cum_stats'].copy()
+            forecast_temp_data['accesses'] = forecast_temp_data['accesses'] / forecast_temp_data['members'] * exp_results[client]['dau']
+            forecast_temp_data['accesses'] = forecast_temp_data['accesses'].fillna(0.0).astype(int)
+            forecast_temp_data['charges'] = forecast_temp_data['charges'] / forecast_temp_data['members'] * exp_results[client]['dau']
+            forecast_temp_data['charges'] = forecast_temp_data['charges'].fillna(0.0).astype(int)
+            forecast_temp_data['revenue'] = forecast_temp_data['revenue'] / forecast_temp_data['members'] * exp_results[client]['dau']
+            forecast_temp_data['revenue'] = forecast_temp_data['revenue'].fillna(0.0).astype(int)
+            forecast_temp_data['members'] = exp_results[client]['dau']
+            forecast_temp_data['members'] = forecast_temp_data['members'].fillna(0.0).astype(int)
+            forecast_data[client] = forecast_temp_data[['members', 'accesses', 'charges', 'revenue']]
+            forecast_data[client].columns = metrics
+            pvals[client] = {}
+            if len(variations[client]) == 2:
+                pvals[client]['variation 2'] = {metric: pvalue for metric, pvalue in zip(
+                    metrics,
+                    [
+                        1,
+                        exp_results[client]['monetization']['cum_metrics']['access cr, %']['pvalue'],
+                        exp_results[client]['monetization']['cum_metrics']['charge cr, %']['pvalue'],
+                        exp_results[client]['monetization']['cum_metrics']['arpu']['pvalue']
+                    ]
+                )}
+            else:
+                for idx, variation in enumerate([var for var in variations[client] if var != 'control']):
+                    pvals[client][variation] = {metric: pvalue for metric, pvalue in zip(
+                        metrics,
+                        [
+                            1,
+                            exp_results[client]['monetization']['cum_metrics']['access cr, %']['pvalue'].iloc[idx],
+                            exp_results[client]['monetization']['cum_metrics']['charge cr, %']['pvalue'].iloc[idx],
+                            exp_results[client]['monetization']['cum_metrics']['arpu']['pvalue'].iloc[idx]
+                        ]
+                    )}
+        variations = max(variations.values(), key=len)
+        data = {plat: {var: {met: forecast_data[plat][met][var]
+                            for met in metrics}
+                        for var in variations}
+                for plat in platforms_list}
+
+        # Вычисление diff_data и случайный выбор цветов diff_colours
+        possible_colours = {"empty": "#ffffff", "nonsignificant": "#fffae6", "good": '#e3fcef', "bad": '#ffebe6'}
+        diff_data = {}
+        diff_colours = {}
+        for var in variations[1:]:
+            diff_data[var] = {}
+            diff_colours[var] = {}
+            for plat in exp_info['clients_list']:
+                diff_data[var][plat] = {}
+                diff_colours[var][plat] = {}
+                for met in metrics:
+                    control = data[plat]['control'][met]
+                    current = data[plat][var][met]
+                    d = current - control
+                    diff_data[var][plat][met] = int(d)
+                    if met == exp_info['experiment_event_start']:
+                        diff_colours[var][plat][met] = possible_colours['empty']
+                    else:
+                        if pvals[plat][var][met] >= 0.05:
+                            diff_colours[var][plat][met] = possible_colours['nonsignificant']
+                        else:
+                            if d > 0:
+                                diff_colours[var][plat][met] = possible_colours['good']
+                            else:
+                                diff_colours[var][plat][met] = possible_colours['bad']
+
+        html_content = template.render(platforms=exp_info['clients_list'], variations=variations, metrics=metrics, data=data, diff_data=diff_data, diff_colours=diff_colours)
         return html_content
+

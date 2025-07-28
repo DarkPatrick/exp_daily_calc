@@ -45,8 +45,11 @@ select
 from
     members
 left join
+-- inner join
     subscriptions as s
 using(unified_id)
+-- where
+--     subscribed_dt between exp_start_dt and {datetime_end}
 group by
     dt,
     variation
