@@ -188,6 +188,77 @@ class HTMLGenerator:
                     'retention 14d, %': f"""{Decimal(f"{df['retention 14d, %'].iloc[id]:.3g}"):f}%"""
                 }
             return rows_dict
+        elif template_name == 'app_long_tab_view_stats':
+            if df.index[id] == 'diff, %':
+                rows_dict: dict = {
+                    'variation': df.index[id],
+                    'members': f"""{Decimal(f"{df['members'].iloc[id]:.2g}"):f}%""",
+                    'tab view 60s': f"""{Decimal(f"{df['tab view 60s'].iloc[id]:.2g}"):f}%""",
+                    'tab view 120s': f"""{Decimal(f"{df['tab view 120s'].iloc[id]:.2g}"):f}%""",
+                    'tab view 180s': f"""{Decimal(f"{df['tab view 180s'].iloc[id]:.2g}"):f}%""",
+                    'tab view 300s': f"""{Decimal(f"{df['tab view 300s'].iloc[id]:.2g}"):f}%""",
+                    'tab view 600s': f"""{Decimal(f"{df['tab view 600s'].iloc[id]:.2g}"):f}%"""
+                }
+            else:
+                rows_dict: dict = {
+                    'variation': df.index[id],
+                    'members': int(df['members'].iloc[id]),
+                    'tab view 60s': int(df['tab view 60s'].iloc[id]),
+                    'tab view 120s': int(df['tab view 120s'].iloc[id]),
+                    'tab view 180s': int(df['tab view 180s'].iloc[id]),
+                    'tab view 300s': int(df['tab view 300s'].iloc[id]),
+                    'tab view 600s': int(df['tab view 600s'].iloc[id])
+                }
+            return rows_dict
+        elif template_name == 'app_long_tab_view_metrics':
+            if df.index[id] == 'pvalue':
+                rows_dict: dict = {
+                    'tab view 60s, %_color':  self.generate_metric_color(df['tab view 60s, %'].iloc[id], df['tab view 60s, %'].iloc[id - 1]),
+                    'tab view 120s, %_color':  self.generate_metric_color(df['tab view 120s, %'].iloc[id], df['tab view 120s, %'].iloc[id - 1]),
+                    'tab view 180s, %_color':  self.generate_metric_color(df['tab view 180s, %'].iloc[id], df['tab view 180s, %'].iloc[id - 1]),
+                    'tab view 300s, %_color':  self.generate_metric_color(df['tab view 300s, %'].iloc[id], df['tab view 300s, %'].iloc[id - 1]),
+                    'tab view 600s, %_color':  self.generate_metric_color(df['tab view 600s, %'].iloc[id], df['tab view 600s, %'].iloc[id - 1]),
+                    'variation': df.index[id],
+                    'tab view 60s, %': f"{self.pvalue_round(df['tab view 60s, %'].iloc[id])}",
+                    'tab view 120s, %': f"{self.pvalue_round(df['tab view 120s, %'].iloc[id])}",
+                    'tab view 180s, %': f"{self.pvalue_round(df['tab view 180s, %'].iloc[id])}",
+                    'tab view 300s, %': f"{self.pvalue_round(df['tab view 300s, %'].iloc[id])}",
+                    'tab view 600s, %': f"{self.pvalue_round(df['tab view 600s, %'].iloc[id])}"
+                }
+            elif df.index[id] == 'cumulatives':
+                rows_dict: dict = {
+                    'tab view 60s, %_color': '',
+                    'tab view 120s, %_color': '',
+                    'tab view 180s, %_color': '',
+                    'tab view 300s, %_color': '',
+                    'tab view 600s, %_color': '',
+                    'variation': df.index[id],
+                    'tab view 60s, %': self.generate_image_markup(f'tab view 60s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 120s, %': self.generate_image_markup(f'tab view 120s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 180s, %': self.generate_image_markup(f'tab view 180s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 300s, %': self.generate_image_markup(f'tab view 300s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 600s, %': self.generate_image_markup(f'tab view 600s, %_pvalues_diff_confidence_intervals_{calc_session}.png')
+                }
+            else:
+                money_prefix = '$'
+                money_suffix = ''
+                if df.index[id] == 'diff, %':
+                    money_prefix = ''
+                    money_suffix = '%'
+                rows_dict: dict = {
+                    'tab view 60s, %_color': '',
+                    'tab view 120s, %_color': '',
+                    'tab view 180s, %_color': '',
+                    'tab view 300s, %_color': '',
+                    'tab view 600s, %_color': '',
+                    'variation': df.index[id],
+                    'tab view 60s, %': f"""{Decimal(f"{df['tab view 60s, %'].iloc[id]:.3g}"):f}%""",
+                    'tab view 120s, %': f"""{Decimal(f"{df['tab view 120s, %'].iloc[id]:.3g}"):f}%""",
+                    'tab view 180s, %': f"""{Decimal(f"{df['tab view 180s, %'].iloc[id]:.3g}"):f}%""",
+                    'tab view 300s, %': f"""{Decimal(f"{df['tab view 300s, %'].iloc[id]:.3g}"):f}%""",
+                    'tab view 600s, %': f"""{Decimal(f"{df['tab view 600s, %'].iloc[id]:.3g}"):f}%"""
+                }
+            return rows_dict
         elif template_name == 'forecast':
             if df.index[id] == 'diff, %':
                 rows_dict: dict = {
@@ -293,13 +364,13 @@ class HTMLGenerator:
             variations[client] = [x for x in exp_results[client]['monetization']['cum_stats'].index if x != 'diff, %']    
             forecast_temp_data = exp_results[client]['monetization']['cum_stats'].copy()
             forecast_temp_data['accesses'] = forecast_temp_data['accesses'] / forecast_temp_data['members'] * exp_results[client]['dau']
-            forecast_temp_data['accesses'] = forecast_temp_data['accesses'].fillna(0.0).astype(int)
+            forecast_temp_data['accesses'] = forecast_temp_data['accesses'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
             forecast_temp_data['charges'] = forecast_temp_data['charges'] / forecast_temp_data['members'] * exp_results[client]['dau']
-            forecast_temp_data['charges'] = forecast_temp_data['charges'].fillna(0.0).astype(int)
+            forecast_temp_data['charges'] = forecast_temp_data['charges'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
             forecast_temp_data['revenue'] = forecast_temp_data['revenue'] / forecast_temp_data['members'] * exp_results[client]['dau']
-            forecast_temp_data['revenue'] = forecast_temp_data['revenue'].fillna(0.0).astype(int)
+            forecast_temp_data['revenue'] = forecast_temp_data['revenue'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
             forecast_temp_data['members'] = exp_results[client]['dau']
-            forecast_temp_data['members'] = forecast_temp_data['members'].fillna(0.0).astype(int)
+            forecast_temp_data['members'] = forecast_temp_data['members'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
             forecast_data[client] = forecast_temp_data[['members', 'accesses', 'charges', 'revenue']]
             forecast_data[client].columns = metrics
             pvals[client] = {}

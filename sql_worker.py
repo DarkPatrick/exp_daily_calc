@@ -43,8 +43,8 @@ class SqlWorker():
                 "custom_sub_where": 1,
                 'custom_having': 1,
                 "custom_sub_having": 1,
-                "funnel_source_include": "Tour Install",
-                # "funnel_source_include": "",
+                # "funnel_source_include": "Tour Install",
+                "funnel_source_include": "",
                 # "funnel_source_include": "Export2pdfDownload",
                 # "funnel_source_include": "AD Interstitial",
                 # "funnel_source_include": "Tour Instant Offer",
@@ -113,15 +113,30 @@ class SqlWorker():
         return query
 
 
-    def build_retention_query(self):
+    def build_retention_query(self, platform):
+        retention_query = "retention_app"
+        if platform == "web":
+            retention_query = "retention_web"
         query = f"""
             with members as (
                 {self.get_query("members")}
             ),
             bydate as (
-                 {self.get_query("retention_app")}
+                 {self.get_query(retention_query)}
             )
             select * from bydate
+        """
+        return query
+
+    def build_long_tab_view_query(self, platform):
+        long_tab_view_query = "long_tab_view_app"
+        if platform == "web":
+            long_tab_view_query = "long_tab_view_web"
+        query = f"""
+            with members as (
+                {self.get_query("members")}
+            ),
+            {self.get_query(long_tab_view_query)}
         """
         return query
 
@@ -138,10 +153,17 @@ class SqlWorker():
         return query_result
 
 
-    def get_exp_daily_retention_data(self, params: dict = {}):
-        retention_query = self.build_retention_query().format(**params)
+    def get_exp_daily_retention_data(self, platform, params: dict = {}):
+        retention_query = self.build_retention_query(platform).format(**params)
         # print(retention_query) 
         query_result = self._mb_client.post("dataset", retention_query)
+        return query_result
+
+
+    def get_exp_daily_long_tab_view_data(self, platform, params: dict = {}):
+        long_tab_view_query = self.build_long_tab_view_query(platform).format(**params)
+        # print(long_tab_view_query) 
+        query_result = self._mb_client.post("dataset", long_tab_view_query)
         return query_result
 
 
@@ -207,32 +229,37 @@ class SqlWorker():
         days_cnt = (exp_end_dt.date() - exp_start_dt.date()).days + 1
         for day in range(days_cnt):
             current_day = exp_start_dt + datetime.timedelta(days=day)
-            # params = dict({
-            #     "exp_id": exp_info["id"],
-            #     "date": current_day.strftime("%Y-%m-%d"),
-            #     'datetime_start': exp_info["date_start"],
-            #     'datetime_end': exp_end_dt_param,
-            #     "exposure_event": "Purchase Process Finish",
-            #     "platform": "all",
-            #     "include_values": "Tour Install",
-            #     "exclude_values": "",
-            #     'pro_rights': self.generate_sql_rights_filter("pro", "All"),
-            #     'edu_rights': self.generate_sql_rights_filter("edu", "All"),
-            #     'sing_rights': self.generate_sql_rights_filter("sing", "All"),
-            #     'practice_rights': self.generate_sql_rights_filter("practice", "All"),
-            #     'book_rights': self.generate_sql_rights_filter("book", "All"),
-            #     "country": "all",
-            #     "source": "UGT_IOS",
-            #     "custom_where": 1,
-            #     'custom_having': 1,
-            #     "retention_events": "'Tab Open', 'App Start', 'Courses Open', 'Shots Open', 'Tabs Open'",
-            #     "members": "members"
-            # })
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
             params["members"] = "members"
             params["retention_events"] = "'Tab Open', 'App Start', 'Courses Open', 'Shots Open', 'Tabs Open'"
-            # params["retention_events"] = "'Tab View', 'Home View'"
-            df = self.get_exp_daily_retention_data(params)
+            platform = "app"
+            if 'UG_WEB' in exp_info['clients_list']:
+                platform = "web"
+                params["retention_events"] = "'Tab View', 'Home View'"
+            df = self.get_exp_daily_retention_data(platform, params)
+            print("DAY", day)
+            print(df)
+            full_df = pd.concat([full_df, df], ignore_index=True)
+        return full_df
+
+
+    def get_exp_long_tab_view_data(self, exp_info):
+        full_df = pd.DataFrame({})
+        exp_start_dt = datetime.datetime.fromtimestamp(exp_info["date_start"], datetime.timezone.utc)
+        exp_end_dt = datetime.datetime.now(datetime.timezone.utc)
+        exp_end_dt_param =  int(datetime.datetime.timestamp(exp_end_dt))
+        if exp_info["date_end"] > exp_info["date_start"]:
+            exp_end_dt = datetime.datetime.fromtimestamp(exp_info["date_end"], datetime.timezone.utc)
+            exp_end_dt_param = exp_info["date_end"]
+        days_cnt = (exp_end_dt.date() - exp_start_dt.date()).days + 1
+        for day in range(days_cnt):
+            current_day = exp_start_dt + datetime.timedelta(days=day)
+            params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
+            params["members"] = "members"
+            platform = "app"
+            if 'UG_WEB' in exp_info['clients_list']:
+                platform = "web"
+            df = self.get_exp_daily_long_tab_view_data(platform, params)
             print("DAY", day)
             print(df)
             full_df = pd.concat([full_df, df], ignore_index=True)

@@ -102,6 +102,36 @@ retention 14d, %:
   len: members
   distribution: bernoulli
   percent: True
+tab view 60s, %:
+  title: tab view 60s, %
+  mean: tab view 60s, %
+  len: members
+  distribution: bernoulli
+  percent: True
+tab view 120s, %:
+  title: tab view 120s, %
+  mean: tab view 120s, %
+  len: members
+  distribution: bernoulli
+  percent: True
+tab view 180s, %:
+  title: tab view 180s, %
+  mean: tab view 180s, %
+  len: members
+  distribution: bernoulli
+  percent: True
+tab view 300s, %:
+  title: tab view 300s, %
+  mean: tab view 300s, %
+  len: members
+  distribution: bernoulli
+  percent: True
+tab view 600s, %:
+  title: tab view 600s, %
+  mean: tab view 600s, %
+  len: members
+  distribution: bernoulli
+  percent: True
 members with Long Tab, %:
   title: members with Long Tab, %
   mean: members with Long Tab, %
@@ -205,6 +235,11 @@ STATS:
   retention_1d_cnt: retention 1d
   retention_7d_cnt: retention 7d
   retention_14d_cnt: retention 14d
+  tab_view_60_cnt: tab view 60s
+  tab_view_120_cnt: tab view 120s
+  tab_view_180_cnt: tab view 180s
+  tab_view_300_cnt: tab view 300s
+  tab_view_600_cnt: tab view 600s
   cancel_14d_cnt: cancel 14d
   refund_14d_cnt: refund 14d
   refund_cnt: refunds

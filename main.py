@@ -20,18 +20,11 @@ def generate_random_id(length=8):
 calc_session = generate_random_id(128)
 
 sql_worker: SqlWorker = SqlWorker()
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6374)
-exp_results_gen = ExpResultsGenerator(sql_worker, 6260)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6128)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5990)
 
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5996)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6068)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6308)
+exp_results_gen = ExpResultsGenerator(sql_worker, 5592)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6260)
 
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6023)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6329)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6179)
 # exp_results_gen.exp_info
 # for platform in exp_results_gen.exp_info['clients_list']:
 #     print(platform)
@@ -40,7 +33,6 @@ exp_results_gen = ExpResultsGenerator(sql_worker, 6260)
 # exp_results_gen.exp_info['date_start'] = 1746809220
 # exp_results_gen.exp_info['date_end'] = 1746985200
 
-# convert 1747039910 to todatetime, s 
 
 clients_options = eval(exp_results_gen.exp_info['clients_options'])
 exp_results = {}
@@ -74,14 +66,16 @@ full_html_content += '\n\n<h2>Significance analysis</h2>\n\n'
 for client in clients_options:
     full_html_content += f"""
     \n\n
-    <ac:structured-macro ac:name="expand" ac:schema-version="1">
+    <ac:structured-macro ac:name="ui-expand" ac:macro-id="{exp_results_gen.exp_info['id']}_{client}">
     <ac:parameter ac:name="title">{client}</ac:parameter>
     <ac:rich-text-body>
     """
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['monetization']['cum_stats'], 'app_monetization_stats', calc_session)
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['retention']['cum_stats'], 'retention_stats', calc_session)
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['monetization']['cum_metrics'], 'app_monetization_metrics', calc_session)
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['retention']['cum_metrics'], 'retention_metrics', calc_session)
+    full_html_content += html_generator.generate_html_results_table(exp_results[client]['monetization']['cum_stats'], 'app_monetization_stats', f'{calc_session}_{client}')
+    full_html_content += html_generator.generate_html_results_table(exp_results[client]['retention']['cum_stats'], 'retention_stats', f'{calc_session}_{client}')
+    full_html_content += html_generator.generate_html_results_table(exp_results[client]['long_tab_view']['cum_stats'], 'app_long_tab_view_stats', f'{calc_session}_{client}')
+    full_html_content += html_generator.generate_html_results_table(exp_results[client]['monetization']['cum_metrics'], 'app_monetization_metrics', f'{calc_session}_{client}')
+    full_html_content += html_generator.generate_html_results_table(exp_results[client]['retention']['cum_metrics'], 'retention_metrics', f'{calc_session}_{client}')
+    full_html_content += html_generator.generate_html_results_table(exp_results[client]['long_tab_view']['cum_metrics'], 'app_long_tab_view_metrics', f'{calc_session}_{client}')
     full_html_content += f"""
     \n\n
     </ac:rich-text-body>
@@ -116,7 +110,7 @@ for client in clients_options:
     for plot_file in tqdm(list_dir):
         confluence.upload_image(
             f'{plot_dir}{plot_file}',
-            f'{os.path.splitext(plot_file)[0]}_{calc_session}.png', page_id)
+            f'{os.path.splitext(plot_file)[0]}_{calc_session}_{client}.png', page_id)
         file_num += 1
 
 confluence.replace_expand_section(url, f"#{str(exp_results_gen.exp_info['id'])}", full_html_content)

@@ -93,6 +93,7 @@ from (
     and ('{funnel_source_include}' = '' or funnel_source in ('{funnel_source_include}'))
     -- and ({funnel_source_exclude} = '' or funnel_source not in ({funnel_source_exclude}))
     and (funnel_source not in ({funnel_source_exclude}))
+    and funnel_source like '%Splash%'
     and
         ({custom_sub_having})
     -- and

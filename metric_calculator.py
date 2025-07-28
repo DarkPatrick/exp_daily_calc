@@ -54,17 +54,6 @@ def calc_monetization_cumulatives(df):
     df['exp_trial_arpu'] = df['trial_revenue_cum'] / df['members_cum']
     df['exp_instant_arpu'] = (df['revenue_cum'] - df['trial_revenue_cum']) / df['members_cum']
 
-    
-
-    def calculate_variance(row, values, denominator):
-            # print("MEAN=", np.mean(values))
-            # print("DENOMINATOR=", np.mean(denominator))
-            # print("VAR=", np.var(values))
-            # print("SUM=", np.sum(values), " VS ", row['revenue_cum'])
-            # mean = np.sum(values) / denominator
-            # return np.sum((np.array(values) - mean)**2) / (denominator - 1)
-            return np.var(values)
-
     df['prices'] = df['prices'].apply(ast.literal_eval)
     df['prices_per_buyer'] = df['prices_per_buyer'].apply(ast.literal_eval)
     
@@ -74,13 +63,8 @@ def calc_monetization_cumulatives(df):
     df['grouped_sums'] = df['prices_per_buyer_agg'].apply(calculate_grouped_sums)
     df.to_csv("tt.csv")
     df = df.assign(
-        # aov_var = lambda x: x.apply(lambda row: calculate_variance(row, row['prices_agg'], len(row['prices_agg'])), axis=1),
         aov_var = lambda x: x.apply(lambda row: np.var(row['prices_agg']), axis=1),
-        # arppu_var = lambda x: x.apply(lambda row: calculate_variance(row, row['grouped_sums'], len(row['grouped_sums'])), axis=1),
         arppu_var = lambda x: x.apply(lambda row: np.var(row['grouped_sums']), axis=1),
-        # exp_arpu_var = lambda x: x.apply(lambda row: calculate_variance(row, row['prices_agg'], len(row['prices_agg']) + row['members'] - row['charge_cnt']), axis=1)
-        # exp_arpu_var = lambda x: x.apply(lambda row: calculate_variance(row, row['grouped_sums'], len(row['grouped_sums']) + row['members_cum'] - row['buyer_cnt_cum']), axis=1)
-        # exp_arpu_var = lambda x: x.apply(lambda row: calculate_variance(row, np.append(row['grouped_sums'], np.zeros(row['members_cum'] - row['buyer_cnt_cum'])), row['members_cum'] - row['buyer_cnt_cum']), axis=1)
         exp_arpu_var = lambda x: x.apply(lambda row: np.var(np.append(row['grouped_sums'], np.zeros(row['members_cum'] - row['buyer_cnt_cum']))), axis=1)
     )
 
@@ -131,6 +115,39 @@ def calc_retention_cumulatives(df):
         'retention_1d_cnt_cum', 'retention 1d, %',
         'retention_7d_cnt_cum', 'retention 7d, %',
         'retention_14d_cnt_cum', 'retention 14d, %'
+    ]
+
+    result_df = df[final_columns]
+    result_df.columns = [col.replace('_cum', '') for col in result_df.columns]
+    result_df['dt'] = pd.to_datetime(result_df['dt']).dt.date
+    result_df['dt'] = result_df['dt'].apply(lambda x: x.strftime('%d/%m/%y'))
+
+    return result_df
+
+
+def calc_long_tab_view_cumulatives(df):
+    df.sort_values(by=['variation', 'dt'], inplace=True)
+
+    cumsum_columns = [
+        'members', 'tab_view_60_cnt', 'tab_view_120_cnt', 'tab_view_180_cnt', 'tab_view_300_cnt', 'tab_view_600_cnt'
+    ]
+
+    for col in cumsum_columns:
+        df[f'{col}_cum'] = df.groupby('variation')[col].cumsum()
+
+    df['tab view 60s, %'] = df['tab_view_60_cnt_cum'] / df['members_cum'] * 100
+    df['tab view 120s, %'] = df['tab_view_120_cnt_cum'] / df['members_cum'] * 100
+    df['tab view 180s, %'] = df['tab_view_180_cnt_cum'] / df['members_cum'] * 100
+    df['tab view 300s, %'] = df['tab_view_300_cnt_cum'] / df['members_cum'] * 100
+    df['tab view 600s, %'] = df['tab_view_600_cnt_cum'] / df['members_cum'] * 100
+
+    final_columns = [
+        'dt', 'variation', 'members_cum', 
+        'tab_view_60_cnt_cum', 'tab view 60s, %',
+        'tab_view_120_cnt_cum', 'tab view 120s, %',
+        'tab_view_180_cnt_cum', 'tab view 180s, %',
+        'tab_view_300_cnt_cum', 'tab view 300s, %',
+        'tab_view_600_cnt_cum', 'tab view 600s, %'
     ]
 
     result_df = df[final_columns]

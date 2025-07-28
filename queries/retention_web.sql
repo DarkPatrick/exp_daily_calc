@@ -6,7 +6,7 @@ select
     uniqExactIf(m.unified_id, e.datetime between toDateTime(m.exp_start_dt) + interval 24 hour and toDateTime(m.exp_start_dt) + interval 192 hour) as retention_7d_cnt,
     uniqExactIf(m.unified_id, e.datetime between toDateTime(m.exp_start_dt) + interval 24 hour and toDateTime(m.exp_start_dt) + interval 360 hour) as retention_14d_cnt
 from
-    default.ug_rt_events_app as e
+    default.ug_rt_events_web as e
 inner join
     {members} as m
 on
