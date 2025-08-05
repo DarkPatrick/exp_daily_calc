@@ -23,9 +23,9 @@ with dau as (
     and
         if('{exposure_event}' like 'Landing%', value not like 'email_%' or value in ('email_reg_offer', 'email_auth_offer'), 1)
     and
-        ('{include_values}' = '' or value in ('{include_values}'))
+        {include_values}
     and
-        ('{exclude_values}' = '' or value not in ('{exclude_values}'))
+        {exclude_values}
     and
         ({custom_where})
     group by
@@ -76,9 +76,9 @@ with dau as (
         or '{exposure_event}' != 'App Experiment Start' and event = '{exposure_event}'
     )
     and
-        ('{include_values}' = '' or value in ('{include_values}'))
+        {include_values}
     and
-        ('{exclude_values}' = '' or value not in ('{exclude_values}'))
+        {exclude_values}
     and
         multiIf(
             '{platform}' = 'Desktop',  platform = 1,

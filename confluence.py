@@ -6,7 +6,7 @@ import json
 from urllib.parse import urlparse, unquote
 import base64
 from bs4 import BeautifulSoup
-
+import ast
 
 
 
@@ -46,6 +46,130 @@ class ConfluenceWorker():
             print(f"Error: {response.status_code}")
             print(response.text)
         return None
+
+
+    def parse_config_table(self, html: str, id_value: int) -> dict:
+        """
+        Ищет в html таблицу с заголовком "#<id_value> config" и парсит её тело в dict:
+        {
+            segment1: {…conditions…},
+            segment2: {…conditions…},
+            …
+        }
+        """
+        soup = BeautifulSoup(html, 'html.parser')
+        target_header = f"#{id_value} config"
+
+        # 1) Найти нужную таблицу по тексту в первом <th> первой строки <tbody>
+        for tbl in soup.find_all('table'):
+            tbody = tbl.find('tbody')
+            if not tbody:
+                continue
+            rows = tbody.find_all('tr')
+            if not rows:
+                continue
+            # смотрим на первый ряд
+            first_cell = rows[0].find('th')
+            if not first_cell or first_cell.get_text(strip=True) != target_header:
+                continue
+
+            # 2) Собираем результат, пропуская первые два ряда (заголовок конфигурации и заголовки колонок)
+            result = {}
+            for row in rows[2:]:
+                tds = row.find_all('td')
+                if len(tds) < 2:
+                    continue  # неполная строка
+                segment = tds[0].get_text(strip=True)
+                cond_text = tds[1].get_text(strip=True)
+
+                # 3) Парсим строку-словарь в настоящий dict
+                try:
+                    conditions = ast.literal_eval(cond_text)
+                    if not isinstance(conditions, dict):
+                        raise ValueError
+                except Exception:
+                    raise ValueError(f"Не удалось распарсить условия: {cond_text!r}")
+
+                result[segment] = conditions
+
+            return result
+
+    def parse_audience_table(self, html: str, id_value: int) -> dict:
+        """
+        Ищет в html таблицу, в первой строке <tbody> которой есть ячейка с текстом "#{id_value} Audience",
+        затем:
+        1) Находит в этой таблице строку, где первый столбец == "Platform", и берёт имена платформ из оставшихся ячеек.
+        2) Находит строки, где первый столбец == "Sample" и == "Days", и берёт из них числовые значения для каждой платформы.
+        3) Собирает итоговый словарь вида:
+            {
+                platform1: {"sample": <int или str>, "days": <int или str>},
+                platform2: {"sample": ... ,       "days": ...},
+                ...
+            }
+        """
+        soup = BeautifulSoup(html, 'html.parser')
+        target_header = f"#{id_value} Audience"
+
+        # 1) Найти таблицу по заголовку в первой строке
+        table = None
+        for tbl in soup.find_all('table'):
+            tbody = tbl.find('thead')
+            if not tbody:
+                continue
+            rows = tbody.find_all('tr')
+            if not rows:
+                continue
+            # первая строка, первый столбец может быть <th> или <td>
+            first_cell = rows[0].find(['th', 'td'])
+            if first_cell and first_cell.get_text(strip=True) == target_header:
+                table = tbl
+                break
+
+        if table is None:
+            raise ValueError(f"Таблица с заголовком '{target_header}' не найдена")
+
+        # 2) Собрать все строки из <tbody>
+        rows = table.find('tbody').find_all('tr')
+
+        # Вспомогательная функция: получить текст первого столбца строки
+        def first_text(row):
+            cell = row.find(['th', 'td'])
+            return cell.get_text(strip=True) if cell else ""
+
+        # Найти нужные строки
+        platform_row = next((r for r in rows if first_text(r) == "Platform"), None)
+        sample_row   = next((r for r in reversed(rows) if first_text(r) == "Sample"), None)
+        days_row     = next((r for r in reversed(rows) if first_text(r) == "Days"), None)
+
+        if not platform_row or not sample_row or not days_row:
+            raise ValueError("Не найдены строки Platform, Sample или Days в таблице")
+
+        # Извлечь списки ячеек (в т.ч. могут быть <td> или <th>)
+        plat_cells   = platform_row.find_all(['th','td'])
+        sample_cells = sample_row.find_all(['th','td'])
+        days_cells   = days_row.find_all(['th','td'])
+
+        # Платформы — это ячейки после первой
+        platforms = [c.get_text(strip=True) for c in plat_cells[1:]]
+        samples   = [c.get_text(strip=True) for c in sample_cells[1:]]
+        days      = [c.get_text(strip=True) for c in days_cells[1:]]
+
+        if not (len(platforms) == len(samples) == len(days)):
+            raise ValueError("Число платформ не совпадает с числом значений Sample/Days")
+
+        # 3) Построить результирующий словарь
+        def maybe_int(s):
+            return int(s) if s.isdigit() else s
+
+        result = {}
+        for plat, samp, dy in zip(platforms, samples, days):
+            result[plat] = {
+                "sample": maybe_int(samp),
+                "days":   maybe_int(dy)
+            }
+
+        return result
+
 
     def get_page_info_by_title(self, space_key, page_title):
         api_url = f"{self._base_url}/rest/api/content?spaceKey={space_key}&title={page_title.replace(' ', '+')}&expand=body.storage,version"

@@ -27,10 +27,10 @@ def calc_monetization_cumulatives(df):
 
     cumsum_columns = [
         'members', 'subscriber_cnt', 'access_cnt', 'access_instant_cnt',
-        'access_ex_trial_cnt', 'access_trial_cnt', 'trial_subscriber_cnt',
-        'charged_trial_cnt', 'cancel_trial_cnt', 'trial_buyer_cnt', 'late_charged_cnt',
+        'access_ex_trial_cnt', 'access_trial_cnt', 'active_trial_cnt', 'trial_subscriber_cnt',
+        'charged_trial_cnt', 'active_charged_trial_cnt', 'cancel_trial_cnt', 'trial_buyer_cnt', 'late_charged_cnt',
         'buyer_cnt', 'charge_cnt', 'refund_14d_cnt', 'cancel_14d_cnt', 'cancel_1m_cnt', 'revenue',
-        'recurrent_charge_cnt', 'recurrent_revenue', 'trial_revenue',
+        'recurrent_charge_cnt', 'recurrent_revenue', 'trial_revenue', 'active_trial_revenue',
         'upgrade_cnt', 'upgrade_revenue'
     ]
 
@@ -41,6 +41,7 @@ def calc_monetization_cumulatives(df):
     df['member -> subscriber, %'] = df['subscriber_cnt_cum'] / df['members_cum'] * 100
     df['trial -> cancel, %'] = df['cancel_trial_cnt_cum'] / df['access_trial_cnt_cum'] * 100
     df['trial -> charge, %'] = df['charged_trial_cnt_cum'] / df['access_trial_cnt_cum'] * 100
+    df['active trial -> charge, %'] = df['active_charged_trial_cnt_cum'] / df['active_trial_cnt_cum'] * 100
     df['trial subscriber -> buyer, %'] = df['trial_buyer_cnt_cum'] / df['trial_subscriber_cnt_cum'] * 100
     df['subscriber -> buyer, %'] = df['buyer_cnt_cum'] / df['subscriber_cnt_cum'] * 100
     df['member -> buyer, %'] = df['buyer_cnt_cum'] / df['members_cum'] * 100
@@ -67,15 +68,20 @@ def calc_monetization_cumulatives(df):
         arppu_var = lambda x: x.apply(lambda row: np.var(row['grouped_sums']), axis=1),
         exp_arpu_var = lambda x: x.apply(lambda row: np.var(np.append(row['grouped_sums'], np.zeros(row['members_cum'] - row['buyer_cnt_cum']))), axis=1)
     )
+    
+    df['trial share, %'] = df['access_trial_cnt_cum'] / df['access_cnt_cum'] * 100
 
     final_columns = [
         'dt', 'variation', 'members_cum', 'subscriber_cnt_cum', 'access_cnt_cum',
         'access_instant_cnt_cum', 'access_ex_trial_cnt_cum', 'access_trial_cnt_cum',
+        'active_trial_cnt_cum', 
+        'trial share, %',
         'accesses_per_subscriber', 'member -> subscriber, %', 'trial -> cancel, %',
-        'trial -> charge, %', 'trial subscriber -> buyer, %', 'subscriber -> buyer, %',
+        'trial -> charge, %', 'active trial -> charge, %', 
+        'trial subscriber -> buyer, %', 'subscriber -> buyer, %',
         'member -> buyer, %', 'subscription -> charge, %', 'charge -> 14d cancel, %',
         'charge -> 14d refund, %',
-        'charged_trial_cnt_cum', 'trial_subscriber_cnt_cum', 'cancel_trial_cnt_cum',
+        'charged_trial_cnt_cum', 'active_charged_trial_cnt_cum',  'trial_subscriber_cnt_cum', 'cancel_trial_cnt_cum',
         'charge_cnt_cum', 'refund_14d_cnt_cum', 'buyer_cnt_cum', 'cancel_14d_cnt_cum', 'cancel_1m_cnt_cum', 'revenue_cum',
         'charge -> 1m cancel, %', 'arppu', 'aov', 'exp_arpu', 'exp_trial_arpu', 'exp_instant_arpu',
         'aov_var', 'arppu_var', 
@@ -125,8 +131,59 @@ def calc_retention_cumulatives(df):
     return result_df
 
 
+def calc_cum_mean_variance(df, mean_col, var_col, members_col):
+    df_sorted = df.sort_values('dt').copy()
+    df_sorted['mean_2'] = df_sorted[var_col] * (df_sorted[members_col] - 1)
+    # if df_sorted[members_col] == 0:
+    #     df_sorted['mean_2'] = 0
+
+    records = []
+    df_sorted.to_csv(f'df_sorted.csv')
+    for variation, group in df_sorted.groupby('variation'):
+        n_total = 0
+        mean_total = 0.0
+        M2_total = 0.0
+
+        for _, row in group.iterrows():
+            n2 = row[members_col]
+            mean2 = row[mean_col]
+            print("mean_col=", mean_col)
+            M2_2 = row['mean_2']
+
+            if n_total == 0:
+                n_total = n2
+                mean_total = mean2
+                M2_total = M2_2
+            elif n2 < 2:
+                pass
+            else:
+                delta = mean2 - mean_total
+                n_combined = n_total + n2
+                mean_total = (n_total * mean_total + n2 * mean2) / n_combined
+                print("M2_total=", M2_total, "M2_2=", M2_2, "delta=", delta, "n_total=", n_total, "n2=", n2, "n_combined=", n_combined)
+                M2_total = M2_total + M2_2 + delta**2 * n_total * n2 / n_combined
+                n_total = n_combined
+
+            var_sample = M2_total / (n_total - 1) if n_total > 1 else float('nan')
+
+            records.append({
+                'dt': row['dt'],
+                'variation': variation,
+                f'{mean_col}_cum': mean_total,
+                f'{var_col}_cum': var_sample
+            })
+
+    result_df = pd.DataFrame(records)
+    return result_df
+
 def calc_long_tab_view_cumulatives(df):
     df.sort_values(by=['variation', 'dt'], inplace=True)
+    tab_view_df = calc_cum_mean_variance(df, 'tab_view_avg', 'tab_view_var', 'members')
+    tab_view_60_df = calc_cum_mean_variance(df, 'tab_view_60_avg', 'tab_view_60_var', 'members')
+    tab_view_120_df = calc_cum_mean_variance(df, 'tab_view_120_avg', 'tab_view_120_var', 'members')
+    tab_view_180_df = calc_cum_mean_variance(df, 'tab_view_180_avg', 'tab_view_180_var', 'members')
+    tab_view_300_df = calc_cum_mean_variance(df, 'tab_view_300_avg', 'tab_view_300_var', 'members')
+    tab_view_600_df = calc_cum_mean_variance(df, 'tab_view_600_avg', 'tab_view_600_var', 'members')
 
     cumsum_columns = [
         'members', 'tab_view_60_cnt', 'tab_view_120_cnt', 'tab_view_180_cnt', 'tab_view_300_cnt', 'tab_view_600_cnt'
@@ -141,13 +198,28 @@ def calc_long_tab_view_cumulatives(df):
     df['tab view 300s, %'] = df['tab_view_300_cnt_cum'] / df['members_cum'] * 100
     df['tab view 600s, %'] = df['tab_view_600_cnt_cum'] / df['members_cum'] * 100
 
+    # join all dfd to df by dt and variation
+    df = df.merge(tab_view_df, on=['dt', 'variation'], how='left')
+    df = df.merge(tab_view_60_df, on=['dt', 'variation'], how='left')
+    df = df.merge(tab_view_120_df, on=['dt', 'variation'], how='left')
+    df = df.merge(tab_view_180_df, on=['dt', 'variation'], how='left')
+    df = df.merge(tab_view_300_df, on=['dt', 'variation'], how='left')
+    df = df.merge(tab_view_600_df, on=['dt', 'variation'], how='left')
+    
+
     final_columns = [
         'dt', 'variation', 'members_cum', 
         'tab_view_60_cnt_cum', 'tab view 60s, %',
         'tab_view_120_cnt_cum', 'tab view 120s, %',
         'tab_view_180_cnt_cum', 'tab view 180s, %',
         'tab_view_300_cnt_cum', 'tab view 300s, %',
-        'tab_view_600_cnt_cum', 'tab view 600s, %'
+        'tab_view_600_cnt_cum', 'tab view 600s, %',
+        'tab_view_avg_cum', 'tab_view_var_cum',
+        'tab_view_60_avg_cum', 'tab_view_60_var_cum',
+        'tab_view_120_avg_cum', 'tab_view_120_var_cum',
+        'tab_view_180_avg_cum', 'tab_view_180_var_cum',
+        'tab_view_300_avg_cum', 'tab_view_300_var_cum',
+        'tab_view_600_avg_cum', 'tab_view_600_var_cum'
     ]
 
     result_df = df[final_columns]

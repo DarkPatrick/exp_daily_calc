@@ -74,6 +74,7 @@ class HTMLGenerator:
                     'arppu_color': self.generate_metric_color(df['arppu'].iloc[id], df['arppu'].iloc[id - 1]),
                     'access cr, %_color': self.generate_metric_color(df['access cr, %'].iloc[id], df['access cr, %'].iloc[id - 1]),
                     'charge cr, %_color': self.generate_metric_color(df['charge cr, %'].iloc[id], df['charge cr, %'].iloc[id - 1]),
+                    'trial share, %_color': self.generate_metric_color(df['trial share, %'].iloc[id], df['trial share, %'].iloc[id - 1]),
                     'trial -> charge, %_color': self.generate_metric_color(df['trial -> charge, %'].iloc[id], df['trial -> charge, %'].iloc[id - 1]),
                     'charge -> 14d cancel, %_color': self.generate_metric_color(df['charge -> 14d cancel, %'].iloc[id], df['charge -> 14d cancel, %'].iloc[id - 1], False),
                     'charge -> 14d refund, %_color': self.generate_metric_color(df['charge -> 14d refund, %'].iloc[id], df['charge -> 14d refund, %'].iloc[id - 1], False),
@@ -83,6 +84,7 @@ class HTMLGenerator:
                     'arppu': f"{self.pvalue_round(df['arppu'].iloc[id])}",
                     'access cr, %': f"{self.pvalue_round(df['access cr, %'].iloc[id])}",
                     'charge cr, %': f"{self.pvalue_round(df['charge cr, %'].iloc[id])}",
+                    'trial share, %': f"{self.pvalue_round(df['trial share, %'].iloc[id])}",
                     'trial -> charge, %': f"{self.pvalue_round(df['trial -> charge, %'].iloc[id])}",
                     'charge -> 14d cancel, %': f"{self.pvalue_round(df['charge -> 14d cancel, %'].iloc[id])}",
                     'charge -> 14d refund, %': f"{self.pvalue_round(df['charge -> 14d refund, %'].iloc[id])}"
@@ -94,6 +96,7 @@ class HTMLGenerator:
                     'arppu_color': '',
                     'access cr, %_color': '',
                     'charge cr, %_color': '',
+                    'trial share, %_color': '',
                     'trial -> charge, %_color': '',
                     'charge -> 14d cancel, %_color': '',
                     'charge -> 14d refund, %_color': '',
@@ -103,6 +106,7 @@ class HTMLGenerator:
                     'arppu': self.generate_image_markup(f'arppu_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'access cr, %': self.generate_image_markup(f'access cr, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'charge cr, %': self.generate_image_markup(f'charge cr, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'trial share, %': self.generate_image_markup(f'trial share, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'trial -> charge, %': self.generate_image_markup(f'trial -> charge, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'charge -> 14d cancel, %': self.generate_image_markup(f'charge -> 14d cancel, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'charge -> 14d refund, %': self.generate_image_markup(f'charge -> 14d refund, %_pvalues_diff_confidence_intervals_{calc_session}.png')
@@ -119,6 +123,7 @@ class HTMLGenerator:
                     'arppu_color': '',
                     'access cr, %_color': '',
                     'charge cr, %_color': '',
+                    'trial share, %_color': '',
                     'trial -> charge, %_color': '',
                     'charge -> 14d cancel, %_color': '',
                     'charge -> 14d refund, %_color': '',
@@ -128,6 +133,7 @@ class HTMLGenerator:
                     'arppu': f"""{money_prefix}{Decimal(f"{df['arppu'].iloc[id]:.3g}"):f}{money_suffix}""",
                     'access cr, %': f"""{Decimal(f"{df['access cr, %'].iloc[id]:.3g}"):f}%""",
                     'charge cr, %': f"""{Decimal(f"{df['charge cr, %'].iloc[id]:.3g}"):f}%""",
+                    'trial share, %': f"""{Decimal(f"{df['trial share, %'].iloc[id]:.3g}"):f}%""",
                     'trial -> charge, %': f"""{Decimal(f"{df['trial -> charge, %'].iloc[id]:.3g}"):f}%""",
                     'charge -> 14d cancel, %': f"""{Decimal(f"{df['charge -> 14d cancel, %'].iloc[id]:.3g}"):f}%""",
                     'charge -> 14d refund, %': f"""{Decimal(f"{df['charge -> 14d refund, %'].iloc[id]:.3g}"):f}%"""
@@ -188,7 +194,7 @@ class HTMLGenerator:
                     'retention 14d, %': f"""{Decimal(f"{df['retention 14d, %'].iloc[id]:.3g}"):f}%"""
                 }
             return rows_dict
-        elif template_name == 'app_long_tab_view_stats':
+        elif template_name == 'long_tab_view_stats':
             if df.index[id] == 'diff, %':
                 rows_dict: dict = {
                     'variation': df.index[id],
@@ -210,7 +216,7 @@ class HTMLGenerator:
                     'tab view 600s': int(df['tab view 600s'].iloc[id])
                 }
             return rows_dict
-        elif template_name == 'app_long_tab_view_metrics':
+        elif template_name == 'long_tab_view_metrics':
             if df.index[id] == 'pvalue':
                 rows_dict: dict = {
                     'tab view 60s, %_color':  self.generate_metric_color(df['tab view 60s, %'].iloc[id], df['tab view 60s, %'].iloc[id - 1]),
@@ -218,12 +224,24 @@ class HTMLGenerator:
                     'tab view 180s, %_color':  self.generate_metric_color(df['tab view 180s, %'].iloc[id], df['tab view 180s, %'].iloc[id - 1]),
                     'tab view 300s, %_color':  self.generate_metric_color(df['tab view 300s, %'].iloc[id], df['tab view 300s, %'].iloc[id - 1]),
                     'tab view 600s, %_color':  self.generate_metric_color(df['tab view 600s, %'].iloc[id], df['tab view 600s, %'].iloc[id - 1]),
+                    'tab view per user_color':  self.generate_metric_color(df['tab view per user'].iloc[id], df['tab view per user'].iloc[id - 1]),
+                    'tab view 60s per user_color':  self.generate_metric_color(df['tab view 60s per user'].iloc[id], df['tab view 60s per user'].iloc[id - 1]),
+                    'tab view 120s per user_color':  self.generate_metric_color(df['tab view 120s per user'].iloc[id], df['tab view 120s per user'].iloc[id - 1]),
+                    'tab view 180s per user_color':  self.generate_metric_color(df['tab view 180s per user'].iloc[id], df['tab view 180s per user'].iloc[id - 1]),
+                    'tab view 300s per user_color':  self.generate_metric_color(df['tab view 300s per user'].iloc[id], df['tab view 300s per user'].iloc[id - 1]),
+                    'tab view 600s per user_color':  self.generate_metric_color(df['tab view 600s per user'].iloc[id], df['tab view 600s per user'].iloc[id - 1]),
                     'variation': df.index[id],
                     'tab view 60s, %': f"{self.pvalue_round(df['tab view 60s, %'].iloc[id])}",
                     'tab view 120s, %': f"{self.pvalue_round(df['tab view 120s, %'].iloc[id])}",
                     'tab view 180s, %': f"{self.pvalue_round(df['tab view 180s, %'].iloc[id])}",
                     'tab view 300s, %': f"{self.pvalue_round(df['tab view 300s, %'].iloc[id])}",
-                    'tab view 600s, %': f"{self.pvalue_round(df['tab view 600s, %'].iloc[id])}"
+                    'tab view 600s, %': f"{self.pvalue_round(df['tab view 600s, %'].iloc[id])}",
+                    'tab view per user': f"{self.pvalue_round(df['tab view per user'].iloc[id])}",
+                    'tab view 60s per user': f"{self.pvalue_round(df['tab view 60s per user'].iloc[id])}",
+                    'tab view 120s per user': f"{self.pvalue_round(df['tab view 120s per user'].iloc[id])}",
+                    'tab view 180s per user': f"{self.pvalue_round(df['tab view 180s per user'].iloc[id])}",
+                    'tab view 300s per user': f"{self.pvalue_round(df['tab view 300s per user'].iloc[id])}",
+                    'tab view 600s per user': f"{self.pvalue_round(df['tab view 600s per user'].iloc[id])}"
                 }
             elif df.index[id] == 'cumulatives':
                 rows_dict: dict = {
@@ -232,31 +250,53 @@ class HTMLGenerator:
                     'tab view 180s, %_color': '',
                     'tab view 300s, %_color': '',
                     'tab view 600s, %_color': '',
+                    'tab view per user_color': '',
+                    'tab view 60s per user_color': '',
+                    'tab view 120s per user_color': '',
+                    'tab view 180s per user_color': '',
+                    'tab view 300s per user_color': '',
+                    'tab view 600s per user_color': '',
                     'variation': df.index[id],
                     'tab view 60s, %': self.generate_image_markup(f'tab view 60s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'tab view 120s, %': self.generate_image_markup(f'tab view 120s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'tab view 180s, %': self.generate_image_markup(f'tab view 180s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'tab view 300s, %': self.generate_image_markup(f'tab view 300s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
-                    'tab view 600s, %': self.generate_image_markup(f'tab view 600s, %_pvalues_diff_confidence_intervals_{calc_session}.png')
+                    'tab view 600s, %': self.generate_image_markup(f'tab view 600s, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view per user': self.generate_image_markup(f'tab view per user_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 60s per user': self.generate_image_markup(f'tab view 60s per user_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 120s per user': self.generate_image_markup(f'tab view 120s per user_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 180s per user': self.generate_image_markup(f'tab view 180s per user_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 300s per user': self.generate_image_markup(f'tab view 300s per user_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'tab view 600s per user': self.generate_image_markup(f'tab view 600s per user_pvalues_diff_confidence_intervals_{calc_session}.png')
                 }
             else:
-                money_prefix = '$'
-                money_suffix = ''
+                suffix = ''
                 if df.index[id] == 'diff, %':
-                    money_prefix = ''
-                    money_suffix = '%'
+                    suffix = '%'
                 rows_dict: dict = {
                     'tab view 60s, %_color': '',
                     'tab view 120s, %_color': '',
                     'tab view 180s, %_color': '',
                     'tab view 300s, %_color': '',
                     'tab view 600s, %_color': '',
+                    'tab view per user_color': '',
+                    'tab view 60s per user_color': '',
+                    'tab view 120s per user_color': '',
+                    'tab view 180s per user_color': '',
+                    'tab view 300s per user_color': '',
+                    'tab view 600s per user_color': '',
                     'variation': df.index[id],
                     'tab view 60s, %': f"""{Decimal(f"{df['tab view 60s, %'].iloc[id]:.3g}"):f}%""",
                     'tab view 120s, %': f"""{Decimal(f"{df['tab view 120s, %'].iloc[id]:.3g}"):f}%""",
                     'tab view 180s, %': f"""{Decimal(f"{df['tab view 180s, %'].iloc[id]:.3g}"):f}%""",
                     'tab view 300s, %': f"""{Decimal(f"{df['tab view 300s, %'].iloc[id]:.3g}"):f}%""",
-                    'tab view 600s, %': f"""{Decimal(f"{df['tab view 600s, %'].iloc[id]:.3g}"):f}%"""
+                    'tab view 600s, %': f"""{Decimal(f"{df['tab view 600s, %'].iloc[id]:.3g}"):f}%""",
+                    'tab view per user': f"""{Decimal(f"{df['tab view per user'].iloc[id]:.3g}"):f}{suffix}""",
+                    'tab view 60s per user': f"""{Decimal(f"{df['tab view 60s per user'].iloc[id]:.3g}"):f}{suffix}""",
+                    'tab view 120s per user': f"""{Decimal(f"{df['tab view 120s per user'].iloc[id]:.3g}"):f}{suffix}""",
+                    'tab view 180s per user': f"""{Decimal(f"{df['tab view 180s per user'].iloc[id]:.3g}"):f}{suffix}""",
+                    'tab view 300s per user': f"""{Decimal(f"{df['tab view 300s per user'].iloc[id]:.3g}"):f}{suffix}""",
+                    'tab view 600s per user': f"""{Decimal(f"{df['tab view 600s per user'].iloc[id]:.3g}"):f}{suffix}"""
                 }
             return rows_dict
         elif template_name == 'forecast':
@@ -318,7 +358,7 @@ class HTMLGenerator:
         return html_content
 
 
-    def generate_html_header_table(self, exp_results: dict) -> str:
+    def generate_html_header_table(self, exp_results: dict, audience_dict: dict) -> str:
         platforms_list = list(exp_results.keys())
         variations = {}
         for client in platforms_list:
@@ -327,10 +367,10 @@ class HTMLGenerator:
 
         platforms = []
         for plat in platforms_list:
-            design_duration = np.random.randint(5, 11)
+            design_duration = audience_dict[plat]['days']
             experiment_duration = exp_results[plat]['monetization']['stats'].cohort_date.nunique()
-            design_samples = {b: np.random.randint(100000, 200000) for b in branches}
-            exp_samples    = {b: int(exp_results[plat]['monetization']['cum_stats']['members'][b]) for b in branches}
+            design_samples = {b: audience_dict[plat]['sample'] for b in branches}
+            exp_samples = {b: int(exp_results[plat]['monetization']['cum_stats']['members'][b]) for b in branches}
             platforms.append({
                 'name': plat,
                 'design':     {'duration': design_duration,   'samples': design_samples},

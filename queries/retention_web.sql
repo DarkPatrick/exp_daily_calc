@@ -14,7 +14,7 @@ on
 where
     e.date between toDate({datetime_start}) and toDate({datetime_end}) + interval 15 day
 and
-    e.event in ({retention_events})
+    e.event in ('Tab View', 'Home View')
 group by
     dt,
     variation

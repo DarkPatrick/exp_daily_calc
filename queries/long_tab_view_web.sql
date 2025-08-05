@@ -8,7 +8,7 @@ tab_view as (
         uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 300s') as tab_view_300_cnt,
         uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 600s') as tab_view_600_cnt
     from
-        default.ug_rt_events_app as e
+        default.ug_rt_events_web as e
     inner join
         {members} as m
     on
@@ -51,7 +51,7 @@ tab_view_per_user as (
             uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 300s') as tab_view_300_cnt,
             uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 600s') as tab_view_600_cnt
         from
-            default.ug_rt_events_app as e
+            default.ug_rt_events_web as e
         inner join
             {members} as m
         on

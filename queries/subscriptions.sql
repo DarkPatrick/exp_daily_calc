@@ -78,8 +78,8 @@ from (
     -- on
     --     n.notification_type_id = d.id
     where
-        s.date >= '{date}'
-    and
+    --     s.date >= '{date}'
+    -- and
         s.subscription_id != ''
     and
         s.product_id != ''
@@ -90,12 +90,14 @@ from (
         product_id
     having
         (lower(funnel_source) not like 'email%' or funnel_source in ('email_reg_offer', 'email_auth_offer'))
-    and ('{funnel_source_include}' = '' or funnel_source in ('{funnel_source_include}'))
-    -- and ({funnel_source_exclude} = '' or funnel_source not in ({funnel_source_exclude}))
-    and (funnel_source not in ({funnel_source_exclude}))
-    and funnel_source like '%Splash%'
+    and
+        {funnel_source_include}
+    and
+        {funnel_source_exclude}
     and
         ({custom_sub_having})
+    and
+        unified_id > 0
     -- and
     --     funnel_start_action = 'WebView'
 )

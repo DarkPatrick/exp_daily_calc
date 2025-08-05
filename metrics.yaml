@@ -54,6 +54,12 @@ trial subscriber -> buyer, %:
   len: trial_subscriber_cnt
   distribution: bernoulli
   percent: True
+trial share, %:
+  title: trial share, %
+  mean: trial share, %
+  len: access_cnt
+  distribution: bernoulli
+  percent: True
 accesses per subscriber:
   title: accesses per subscriber
   mean: accesses per subscriber
@@ -132,6 +138,36 @@ tab view 600s, %:
   len: members
   distribution: bernoulli
   percent: True
+tab view per user:
+  title: tab view per user
+  mean: tab_view_avg
+  len: members
+  var: tab_view_var
+tab view 60s per user:
+  title: tab view 60s per user
+  mean: tab_view_60_avg
+  len: members
+  var: tab_view_60_var
+tab view 120s per user:
+  title: tab view 120s per user
+  mean: tab_view_120_avg
+  len: members
+  var: tab_view_120_var
+tab view 180s per user:
+  title: tab view 180s per user
+  mean: tab_view_180_avg
+  len: members
+  var: tab_view_180_var
+tab view 300s per user:
+  title: tab view 300s per user
+  mean: tab_view_300_avg
+  len: members
+  var: tab_view_300_var
+tab view 600s per user:
+  title: tab view 600s per user
+  mean: tab_view_600_avg
+  len: members
+  var: tab_view_600_var
 members with Long Tab, %:
   title: members with Long Tab, %
   mean: members with Long Tab, %
@@ -240,6 +276,12 @@ STATS:
   tab_view_180_cnt: tab view 180s
   tab_view_300_cnt: tab view 300s
   tab_view_600_cnt: tab view 600s
+  # tab_view_avg: tab view avg
+  # tab_view_60_avg: tab view 60s avg
+  # tab_view_120_avg: tab view 120s avg
+  # tab_view_180_avg: tab view 180s avg
+  # tab_view_300_avg: tab view 300s avg
+  # tab_view_600_avg: tab view 600s avg
   cancel_14d_cnt: cancel 14d
   refund_14d_cnt: refund 14d
   refund_cnt: refunds
