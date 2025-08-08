@@ -31,8 +31,6 @@ with dau as (
     group by
         unified_id
     having
-        session_id > 0
-    and
         {pro_rights} and {edu_rights} and {sing_rights} and {practice_rights} and {book_rights}
     and
         toDate(dau_dt) = '{date}'

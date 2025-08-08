@@ -5,6 +5,7 @@
 # воронка регвола
 # лтв 2 года
 # сегменты через конфиг в доке вместо сторк с фильтрам хардкодить костаны: разбивка по трафику. доступы в туре / только сплешы / без сплешей / без тура
+# trials share починить график
 import pandas as pd
 from sql_worker import SqlWorker
 import re
@@ -49,7 +50,21 @@ sql_worker: SqlWorker = SqlWorker()
 # exp_results_gen = ExpResultsGenerator(sql_worker, 6245)
 
 
-exp_results_gen = ExpResultsGenerator(sql_worker, 6404)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6404)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 5957)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6083)
+
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6029)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6242)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6122)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6308)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6161)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6251)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6314)
+exp_results_gen = ExpResultsGenerator(sql_worker, 6350)
 
 
 # exp_results_gen.exp_info
@@ -73,12 +88,14 @@ print(url)
 confluence = ConfluenceWorker()
 
 page_info = confluence.get_page_info(url)
-# config_dict = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
-# print(config_dict)
-# print(config_dict['total'])
+config_dict = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
+if config_dict == {}:
+    config_dict  = {'Total': {'pro_rights': 'All'}}
+print(config_dict)
+# print(config_dict['Total'])
 # audience_dict = confluence.parse_audience_table(page_info['current_content'], exp_results_gen.exp_info['id'])
 # print(audience_dict)
-audience_dict = {'UGT_IOS': {'sample': 0, 'days': 0}, 'UGT_ANDROID': {'sample': 0, 'days': 0}}
+audience_dict = {'UGT_IOS': {'sample': 0, 'days': 0}, 'UGT_ANDROID': {'sample': 0, 'days': 0}, 'UG_WEB': {'sample': 0, 'days': 0}}
 
 # import sys
 # sys.exit()
@@ -95,17 +112,21 @@ for client in clients_options:
     #     exp_results_gen.exp_info['date_end'] = 1753086660
 
     exp_results_gen.exp_info['calc_source'] = client
-    for params in clients_options[client]:
-        if params[0] == 'platform':
-            exp_results_gen.exp_info['calc_platforms'] = params[1]
-        if params[0] == 'version':
-            exp_results_gen.exp_info['calc_version'] = params[1]
-    exp_results_gen.exp_info['calc_source'] = client
-    
-    exp_results[client] = exp_results_gen.get_exp_all_calculations()
+    exp_results[client] = {}
 
-import sys
-sys.exit()
+    for segment in config_dict:
+        for params in clients_options[client]:
+            if params[0] == 'platform':
+                exp_results_gen.exp_info['calc_platforms'] = params[1]
+            if params[0] == 'version':
+                exp_results_gen.exp_info['calc_version'] = params[1]
+        exp_results_gen.exp_info['segment'] = segment
+        exp_results_gen.db._current_segment = config_dict[segment]
+
+        exp_results[client][segment] = exp_results_gen.get_exp_all_calculations()
+
+# import sys
+# sys.exit()
 
 html_generator = HTMLGenerator()
 
@@ -127,12 +148,16 @@ for client in clients_options:
     <ac:parameter ac:name="title">{client}</ac:parameter>
     <ac:rich-text-body>
     """
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['monetization']['cum_stats'], 'app_monetization_stats', f'{calc_session}_{client}')
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['retention']['cum_stats'], 'retention_stats', f'{calc_session}_{client}')
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['long_tab_view']['cum_stats'], 'long_tab_view_stats', f'{calc_session}_{client}')
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['monetization']['cum_metrics'], 'app_monetization_metrics', f'{calc_session}_{client}')
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['retention']['cum_metrics'], 'retention_metrics', f'{calc_session}_{client}')
-    full_html_content += html_generator.generate_html_results_table(exp_results[client]['long_tab_view']['cum_metrics'], 'long_tab_view_metrics', f'{calc_session}_{client}')
+    full_html_content += html_generator.generate_html_results_table(
+        {segment: exp_results[client][segment]['monetization']['cum_stats'] for segment in config_dict}, 
+        'app_monetization_stats', f'{calc_session}_{client}_{segment}')
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['retention']['cum_stats']}, 'retention_stats', f'{calc_session}_{client}_Total')
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['long_tab_view']['cum_stats']}, 'long_tab_view_stats', f'{calc_session}_{client}_Total')
+    full_html_content += html_generator.generate_html_results_table(
+        {segment: exp_results[client][segment]['monetization']['cum_metrics'] for segment in config_dict}, 
+        'app_monetization_metrics', f'{calc_session}_{client}_{segment}')
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['retention']['cum_metrics']}, 'retention_metrics', f'{calc_session}_{client}_Total')
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['long_tab_view']['cum_metrics']}, 'long_tab_view_metrics', f'{calc_session}_{client}_Total')
     full_html_content += f"""
     \n\n
     </ac:rich-text-body>
@@ -140,21 +165,24 @@ for client in clients_options:
     \n\n
     """
 
+# print(full_html_content)
+
 # import sys
 # sys.exit()
 
 
-for client in clients_options:    
-    plot_dir = f"plots/exp_{exp_results_gen.exp_info['id']}_{client}/"
-    list_dir = os.listdir(plot_dir)
-    number_files = len(list_dir)
-    file_num = 1
+for client in clients_options:
+    for segment in config_dict:
+        plot_dir = f"plots/exp_{exp_results_gen.exp_info['id']}_{client}_{segment}/"
+        list_dir = os.listdir(plot_dir)
+        number_files = len(list_dir)
+        file_num = 1
 
-    for plot_file in tqdm(list_dir):
-        confluence.upload_image(
-            f'{plot_dir}{plot_file}',
-            f'{os.path.splitext(plot_file)[0]}_{calc_session}_{client}.png', page_id)
-        file_num += 1
+        for plot_file in tqdm(list_dir):
+            confluence.upload_image(
+                f'{plot_dir}{plot_file}',
+                f'{os.path.splitext(plot_file)[0]}_{calc_session}_{client}_{segment}.png', page_id)
+            file_num += 1
 
 confluence.replace_expand_section(url, f"#{str(exp_results_gen.exp_info['id'])}", full_html_content)
 

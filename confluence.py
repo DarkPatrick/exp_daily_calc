@@ -86,9 +86,11 @@ class ConfluenceWorker():
                 try:
                     conditions = ast.literal_eval(cond_text)
                     if not isinstance(conditions, dict):
-                        raise ValueError
+                        # raise ValueError
+                        return {}
                 except Exception:
-                    raise ValueError(f"Не удалось распарсить условия: {cond_text!r}")
+                    # raise ValueError(f"Не удалось распарсить условия: {cond_text!r}")
+                    return {}
 
                 result[segment] = conditions
 

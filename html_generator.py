@@ -319,16 +319,21 @@ class HTMLGenerator:
             return rows_dict
 
 
-    def generate_html_results_table(self, df: pd.DataFrame, template_name: str, calc_session: str) -> str:
+    def generate_html_results_table(self, segments: dict, template_name: str, calc_session: str) -> str:
         htm_rows = ''
         html_content = ''
-        for id in range(len(df.index)):
-            rows_dict: dict = self.generate_htm_dict(df, id, template_name, calc_session)
-            with open(f"{self.template_dir}{template_name}_row.html", 'r') as file:
-                html_content = file.read().format(
-                    **rows_dict
-                )
-                htm_rows += html_content + '\n'
+        # enumerate in df_list
+        for i, (segment, df) in enumerate(segments.items()):
+            if i > 0:
+                htm_rows += f'<tr><th colspan="{num_columns}" class="highlight-#eae6ff confluenceTd" data-highlight-colour="#eae6ff" bgcolor="#eae6ff">{segment}</th></tr>\n'
+            for id in range(len(df.index)):
+                rows_dict: dict = self.generate_htm_dict(df, id, template_name, calc_session)
+                with open(f"{self.template_dir}{template_name}_row.html", 'r') as file:
+                    html_content = file.read().format(
+                        **rows_dict
+                    )
+                    num_columns = html_content.count('<td') + html_content.count('<th')
+                    htm_rows += html_content + '\n'
 
         with open(f"{self.template_dir}{template_name}_header.html", 'r') as file:
             html_content = file.read().format(rows=htm_rows)
@@ -362,15 +367,15 @@ class HTMLGenerator:
         platforms_list = list(exp_results.keys())
         variations = {}
         for client in platforms_list:
-            variations[client] = [x for x in exp_results[client]['monetization']['cum_stats'].index if x != 'diff, %']
+            variations[client] = [x for x in exp_results[client]['Total']['monetization']['cum_stats'].index if x != 'diff, %']
         branches = max(variations.values(), key=len)
 
         platforms = []
         for plat in platforms_list:
             design_duration = audience_dict[plat]['days']
-            experiment_duration = exp_results[plat]['monetization']['stats'].cohort_date.nunique()
+            experiment_duration = exp_results[plat]['Total']['monetization']['stats'].cohort_date.nunique()
             design_samples = {b: audience_dict[plat]['sample'] for b in branches}
-            exp_samples = {b: int(exp_results[plat]['monetization']['cum_stats']['members'][b]) for b in branches}
+            exp_samples = {b: int(exp_results[plat]['Total']['monetization']['cum_stats']['members'][b]) for b in branches}
             platforms.append({
                 'name': plat,
                 'design':     {'duration': design_duration,   'samples': design_samples},
@@ -401,15 +406,15 @@ class HTMLGenerator:
         forecast_data = {}
         pvals = {}
         for client in platforms_list:
-            variations[client] = [x for x in exp_results[client]['monetization']['cum_stats'].index if x != 'diff, %']    
-            forecast_temp_data = exp_results[client]['monetization']['cum_stats'].copy()
-            forecast_temp_data['accesses'] = forecast_temp_data['accesses'] / forecast_temp_data['members'] * exp_results[client]['dau']
+            variations[client] = [x for x in exp_results[client]['Total']['monetization']['cum_stats'].index if x != 'diff, %']    
+            forecast_temp_data = exp_results[client]['Total']['monetization']['cum_stats'].copy()
+            forecast_temp_data['accesses'] = forecast_temp_data['accesses'] / forecast_temp_data['members'] * exp_results[client]['Total']['dau']
             forecast_temp_data['accesses'] = forecast_temp_data['accesses'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
-            forecast_temp_data['charges'] = forecast_temp_data['charges'] / forecast_temp_data['members'] * exp_results[client]['dau']
+            forecast_temp_data['charges'] = forecast_temp_data['charges'] / forecast_temp_data['members'] * exp_results[client]['Total']['dau']
             forecast_temp_data['charges'] = forecast_temp_data['charges'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
-            forecast_temp_data['revenue'] = forecast_temp_data['revenue'] / forecast_temp_data['members'] * exp_results[client]['dau']
+            forecast_temp_data['revenue'] = forecast_temp_data['revenue'] / forecast_temp_data['members'] * exp_results[client]['Total']['dau']
             forecast_temp_data['revenue'] = forecast_temp_data['revenue'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
-            forecast_temp_data['members'] = exp_results[client]['dau']
+            forecast_temp_data['members'] = exp_results[client]['Total']['dau']
             forecast_temp_data['members'] = forecast_temp_data['members'].replace([np.inf, -np.inf], 0).fillna(0.0).astype(int)
             forecast_data[client] = forecast_temp_data[['members', 'accesses', 'charges', 'revenue']]
             forecast_data[client].columns = metrics
@@ -419,9 +424,9 @@ class HTMLGenerator:
                     metrics,
                     [
                         1,
-                        exp_results[client]['monetization']['cum_metrics']['access cr, %']['pvalue'],
-                        exp_results[client]['monetization']['cum_metrics']['charge cr, %']['pvalue'],
-                        exp_results[client]['monetization']['cum_metrics']['arpu']['pvalue']
+                        exp_results[client]['Total']['monetization']['cum_metrics']['access cr, %']['pvalue'],
+                        exp_results[client]['Total']['monetization']['cum_metrics']['charge cr, %']['pvalue'],
+                        exp_results[client]['Total']['monetization']['cum_metrics']['arpu']['pvalue']
                     ]
                 )}
             else:
@@ -430,9 +435,9 @@ class HTMLGenerator:
                         metrics,
                         [
                             1,
-                            exp_results[client]['monetization']['cum_metrics']['access cr, %']['pvalue'].iloc[idx],
-                            exp_results[client]['monetization']['cum_metrics']['charge cr, %']['pvalue'].iloc[idx],
-                            exp_results[client]['monetization']['cum_metrics']['arpu']['pvalue'].iloc[idx]
+                            exp_results[client]['Total']['monetization']['cum_metrics']['access cr, %']['pvalue'].iloc[idx],
+                            exp_results[client]['Total']['monetization']['cum_metrics']['charge cr, %']['pvalue'].iloc[idx],
+                            exp_results[client]['Total']['monetization']['cum_metrics']['arpu']['pvalue'].iloc[idx]
                         ]
                     )}
         variations = max(variations.values(), key=len)

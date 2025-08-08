@@ -71,12 +71,12 @@ class ExpResultsGenerator:
 
 
     def get_exp_all_calculations(self):
-        if not os.path.exists(f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}"):
-            os.makedirs(f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}")
-        if not os.path.exists(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}"):
-            os.makedirs(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}")
-        self.results_path = f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}/"
-        self.plot_builder = PlotBuilder(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}/")
+        if not os.path.exists(f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}_{self.exp_info['segment']}"):
+            os.makedirs(f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}_{self.exp_info['segment']}")
+        if not os.path.exists(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}_{self.exp_info['segment']}"):
+            os.makedirs(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}_{self.exp_info['segment']}")
+        self.results_path = f"exp_results/exp_{self.experiment_id}_{self.exp_info['calc_source']}_{self.exp_info['segment']}/"
+        self.plot_builder = PlotBuilder(f"plots/exp_{self.experiment_id}_{self.exp_info['calc_source']}_{self.exp_info['segment']}/")
 
         cum_files = self.generate_cum_files()
         monetization_res = self.generate_results_dfs(f'{self.results_path}monetization_result.csv', 'monetization')

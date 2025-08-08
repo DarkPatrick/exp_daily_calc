@@ -17,41 +17,31 @@ class SqlWorker():
             username=secrets["username"],
             password=secrets["password"]
         )
+        self._current_segment: dict = {}
 
     def get_exp_params(self, exp_info: dict, date: str, exp_end_dt: str) -> dict:
         return dict({
                 "exp_id": exp_info["id"],
                 "date": date,
-                'datetime_start': exp_info["date_start"],
-                'datetime_end': exp_end_dt,
-                "exposure_event": exp_info["experiment_event_start"],
-                # "exposure_event": "Explore Open",
-                # "platform": "Mobile",
-                "platform": "all",
-                "include_values": self.generate_sql_list_filter("value", []),
-                "exclude_values": self.generate_sql_list_filter("value", [], exclude=True),
-                'pro_rights': self.generate_sql_rights_filter("pro", "Free"),
-                # 'pro_rights': self.generate_sql_rights_filter("pro", "Empty"),
-                # 'pro_rights': self.generate_sql_rights_filter("pro", "All"),
-                'edu_rights': self.generate_sql_rights_filter("edu", "All"),
-                'sing_rights': self.generate_sql_rights_filter("sing", "All"),
-                'practice_rights': self.generate_sql_rights_filter("practice", "All"),
-                'book_rights': self.generate_sql_rights_filter("book", "All"),
-                "country": "all",
-                # "country": "US",
+                'datetime_start': self._current_segment.get("datetime_start", exp_info["date_start"]),
+                'datetime_end': self._current_segment.get("datetime_end", exp_end_dt),
+                "exposure_event": self._current_segment.get("exposure_event", exp_info["experiment_event_start"]),
+                "platform": self._current_segment.get("platform", "all"),
+                "include_values": self.generate_sql_list_filter("value", self._current_segment.get("include_values", [])),
+                "exclude_values": self.generate_sql_list_filter("value", [self._current_segment.get("exclude_values", [])], exclude=True),
+                'pro_rights': self.generate_sql_rights_filter("pro", self._current_segment.get("pro_rights", "Free")),
+                'edu_rights': self.generate_sql_rights_filter("edu", self._current_segment.get("edu_rights", "All")),
+                'sing_rights': self.generate_sql_rights_filter("sing", self._current_segment.get("sing_rights", "All")),
+                'practice_rights': self.generate_sql_rights_filter("practice", self._current_segment.get("practice_rights", "All")),
+                'book_rights': self.generate_sql_rights_filter("book", self._current_segment.get("book_rights", "All")),
+                "country": self._current_segment.get("country", "all"),
                 "source": exp_info["calc_source"],
-                "custom_where": 1,
-                "custom_sub_where": 1,
-                'custom_having': 1,
-                "custom_sub_having": 1,
-                # "funnel_source_include": "Tour Install",
-                "funnel_source_include": self.generate_sql_list_filter("funnel_source", ["Tour Install"], exclude=False),
-                # "funnel_source_include": "Export2pdfDownload",
-                # "funnel_source_include": "AD Interstitial",
-                # "funnel_source_include": "Tour Instant Offer",
-                "funnel_source_exclude": self.generate_sql_list_filter("funnel_source", [], exclude=True),
-                # "funnel_source_exclude": "'Tour Install', 'Tour Instant Offer'",
-                # "funnel_source_exclude": "'AD Interstitial'",
+                "custom_where": self._current_segment.get("custom_where", 1),
+                "custom_sub_where": self._current_segment.get("custom_sub_where", 1),
+                'custom_having': self._current_segment.get("custom_having", 1),
+                "custom_sub_having": self._current_segment.get("custom_sub_having", 1),
+                "funnel_source_include": self.generate_sql_list_filter("funnel_source", self._current_segment.get("funnel_source_include", [])),
+                "funnel_source_exclude": self.generate_sql_list_filter("funnel_source", self._current_segment.get("funnel_source_exclude", []), exclude=True),
                 "variations": [variation + 1 for variation in range(exp_info["variations"])],
                 "platform_suffix": "web" if exp_info["calc_source"] == "UG_WEB" else "app"
             })
@@ -228,7 +218,7 @@ class SqlWorker():
         for day in range(days_cnt):
             current_day = exp_start_dt + datetime.timedelta(days=day)
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
-            # params["ex_subs_filter"] = ""
+            params["ex_subs_filter"] = ""
             # params["ex_subs_filter"] = """
             # s.sub_dt > toDateTime(0)
             # and s.can_dt > s.sub_dt
