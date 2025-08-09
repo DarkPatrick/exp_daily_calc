@@ -72,7 +72,7 @@ from (
     -- and
     --     s.product_code = n.product_code
     -- and
-    --     toDate(s.datetime) = toDate(n.date_received)
+    --     toDate(s.datetime, 'UTC') = toDate(n.date_received, 'UTC')
     -- left join
     --     mysql_mob_api.subscription_ios_notification_type_dictionary as d
     -- on

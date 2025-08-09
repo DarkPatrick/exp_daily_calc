@@ -1,12 +1,12 @@
 tab_view as (
     select
-        toDate(m.exp_start_dt) as dt,
+        toDate(m.exp_start_dt, 'UTC') as dt,
         m.variation as variation, 
-        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 60s') as tab_view_60_cnt,
-        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 120s') as tab_view_120_cnt,
-        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 180s') as tab_view_180_cnt,
-        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 300s') as tab_view_300_cnt,
-        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 600s') as tab_view_600_cnt
+        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 60s') as tab_view_60_cnt,
+        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 120s') as tab_view_120_cnt,
+        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 180s') as tab_view_180_cnt,
+        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 300s') as tab_view_300_cnt,
+        uniqExactIf(m.unified_id, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 600s') as tab_view_600_cnt
     from
         default.ug_rt_events_web as e
     inner join
@@ -14,7 +14,7 @@ tab_view as (
     on
         e.unified_id = m.unified_id
     where
-        e.date between toDate({datetime_start}) and toDate({datetime_end})
+        e.date between toDate({datetime_start}, 'UTC') and toDate({datetime_end}, 'UTC')
     and
         e.event in ('Tab View 60s', 'Tab View 120s', 'Tab View 180s', 'Tab View 300s', 'Tab View 600s')
     group by
@@ -41,15 +41,15 @@ tab_view_per_user as (
         varSamp(tab_view_600_cnt) as tab_view_600_var
     from (
         select
-            toDate(m.exp_start_dt) as dt,
+            toDate(m.exp_start_dt, 'UTC') as dt,
             m.variation as variation, 
             m.unified_id as unified_id,
-            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View') as tab_view_cnt,
-            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 60s') as tab_view_60_cnt,
-            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 120s') as tab_view_120_cnt,
-            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 180s') as tab_view_180_cnt,
-            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 300s') as tab_view_300_cnt,
-            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt) and e.event = 'Tab View 600s') as tab_view_600_cnt
+            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View') as tab_view_cnt,
+            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 60s') as tab_view_60_cnt,
+            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 120s') as tab_view_120_cnt,
+            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 180s') as tab_view_180_cnt,
+            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 300s') as tab_view_300_cnt,
+            uniqExactIf(e.datetime, e.datetime >= toDateTime(m.exp_start_dt, 'UTC') and e.event = 'Tab View 600s') as tab_view_600_cnt
         from
             default.ug_rt_events_web as e
         inner join
@@ -57,7 +57,7 @@ tab_view_per_user as (
         on
             e.unified_id = m.unified_id
         where
-            e.date between toDate({datetime_start}) and toDate({datetime_end})
+            e.date between toDate({datetime_start}, 'UTC') and toDate({datetime_end}, 'UTC')
         and
             e.event in ('Tab View', 'Tab View 60s', 'Tab View 120s', 'Tab View 180s', 'Tab View 300s', 'Tab View 600s')
         group by
@@ -72,7 +72,7 @@ tab_view_per_user as (
 
 members_agg as (
     select
-        toDate(exp_start_dt) as dt,
+        toDate(exp_start_dt, 'UTC') as dt,
         variation,
         uniqExact(m.unified_id) as members
     from

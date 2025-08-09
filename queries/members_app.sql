@@ -22,7 +22,7 @@ from
 --     from
 --         default.ug_rt_events_web as w
 --     where
---         date between toDate({datetime_start}) and toDate({datetime_end})
+--         date between toDate({datetime_start}, 'UTC') and toDate({datetime_end}, 'UTC')
 --     and
 --         app_unified_id is not null
 --     and
@@ -35,9 +35,9 @@ from
 -- on
 --     a.unified_id = w.app_unified_id
 where
-    date between toDate({datetime_start}) and '{date}'
+    date between toDate({datetime_start}, 'UTC') and '{date}'
 and
-    datetime between toDateTime({datetime_start}) and toDateTime({datetime_end})
+    datetime between toDateTime({datetime_start}, 'UTC') and toDateTime({datetime_end}, 'UTC')
 and
     has(experiments.id, {exp_id})
 and
@@ -76,6 +76,6 @@ and
         1
     )
 and
-    toDate(exp_start_dt) = '{date}'
+    toDate(exp_start_dt, 'UTC') = '{date}'
 and
     ({custom_having})

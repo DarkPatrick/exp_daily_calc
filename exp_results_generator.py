@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 from df_processing import DF_Processor
-from metric_calculator import calc_monetization_cumulatives, calc_retention_cumulatives, calc_long_tab_view_cumulatives
+from metric_calculator import calc_monetization_cumulatives, calc_retention_cumulatives, calc_long_tab_view_cumulatives, calculate_custom_funnels
 from plot_builder import PlotBuilder
 from sql_worker import SqlWorker
 from stats import Stats
@@ -23,31 +23,40 @@ class ExpResultsGenerator:
         self.plot_builder = PlotBuilder(f"plots/exp_{self.experiment_id}/")
 
 
-    def generate_cum_files(self) -> Dict[str, pd.DataFrame]:
+    def generate_cum_files(self) -> Dict[str, pd.DataFrame]:    
         monetization_data_df = self.db.get_exp_monetization_data(self.exp_info)
         retention_data_df = self.db.get_exp_retention_data(self.exp_info)
         long_tab_view_data_df = self.db.get_exp_long_tab_view_data(self.exp_info)
         dau_data_df = self.db.get_dau_data(self.exp_info)
+        funnels_dict = {}
+        for funnel in self.db._funnels:
+            funnel_data_df = self.db.get_custom_funnel_data(self.exp_info, self.db._funnels[funnel])
+            funnels_dict[funnel] = funnel_data_df
 
         monetization_results_df = calc_monetization_cumulatives(monetization_data_df)
         retention_result_df = calc_retention_cumulatives(retention_data_df)
         long_tab_view_result_df = calc_long_tab_view_cumulatives(long_tab_view_data_df)
+        funnels_results_dict = calculate_custom_funnels(funnels_dict)
+        
 
         monetization_results_df.to_csv(f"{self.results_path}monetization_result.csv", index=False)
         retention_result_df.to_csv(f"{self.results_path}retention_result.csv", index=False)
         long_tab_view_result_df.to_csv(f"{self.results_path}long_tab_view_result.csv", index=False)
-
-        # print(dau_data_df)
-        # dau_data_df = dau_data_df.groupby('dt')['dau'].mean()
-        # dau_data_df['dau'].mean()
         dau_data_df.to_csv(f"{self.results_path}dau_data.csv", index=True)
+        for funnel, funnel_data_df in funnels_results_dict.items():
+            funnel_data_df.to_csv(f"{self.results_path}funnel_data_{funnel}.csv", index=False)
+
+        # import sys
+        # sys.exit()
 
         return {
             'monetization': monetization_results_df,
             'dau': dau_data_df['dau'].mean(),
             'retention': retention_result_df,
-            'long_tab_view': long_tab_view_result_df
+            'long_tab_view': long_tab_view_result_df,
+            'funnel_data': funnels_results_dict
         }
+
 
 
     def generate_results_dfs(self, results_file: str, suffix: str) -> Dict[str, pd.DataFrame]:
@@ -89,5 +98,6 @@ class ExpResultsGenerator:
             'monetization': monetization_res,
             'dau': cum_files['dau'],
             'retention': retention_res,
-            'long_tab_view': long_tab_view_res
+            'long_tab_view': long_tab_view_res,
+            'funnel_data': cum_files['funnel_data']
         }

@@ -11,9 +11,9 @@ select
 from
     default.ug_rt_events_web
 where
-    date between toDate({datetime_start}) and '{date}'
+    date between toDate({datetime_start}, 'UTC') and '{date}'
 and
-    datetime between toDateTime({datetime_start}) and toDateTime({datetime_end})
+    datetime between toDateTime({datetime_start}, 'UTC') and toDateTime({datetime_end}, 'UTC')
 and
     has(experiments.id, {exp_id})
 and
@@ -44,6 +44,6 @@ group by
 having
     {pro_rights} and {edu_rights} and {sing_rights} and {practice_rights} and {book_rights}
 and
-    toDate(exp_start_dt) = '{date}'
+    toDate(exp_start_dt, 'UTC') = '{date}'
 and
     ({custom_having})

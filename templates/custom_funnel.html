@@ -1,0 +1,31 @@
+{# table.html.j2 #}
+<h2>{{ funnel_name }}</h2>
+<table class="wrapped confluenceTable">
+  <thead>
+    <tr>
+      <th style="text-align:left" class="highlight-#eae6ff confluenceTd"
+          data-highlight-colour="#eae6ff" bgcolor="#eae6ff">
+        {{ columns_head.title }}
+      </th>
+      {% for col in columns_tail %}
+        <th style="text-align:left" class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff" bgcolor="#eae6ff">
+          {{ col.title }}
+        </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        <th style="text-align:left" class="highlight-#eae6ff confluenceTd"
+            data-highlight-colour="#eae6ff" bgcolor="#eae6ff">
+          {{ row.first.text }}{% if row.first.append_percent %}%{% endif %}
+        </th>
+        {% for cell in row.rest %}
+          <td style="text-align: right;">{{ cell.text }}{% if cell.append_percent %}%{% endif %}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

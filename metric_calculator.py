@@ -228,3 +228,33 @@ def calc_long_tab_view_cumulatives(df):
     result_df['dt'] = result_df['dt'].apply(lambda x: x.strftime('%d/%m/%y'))
 
     return result_df
+
+
+def calculate_custom_funnels(funnels_dict: dict) -> dict:
+    results = {}
+    for funnel_name, funnel_data in funnels_dict.items():
+        # save column order in funnel_data
+        original_columns = funnel_data.columns.tolist()
+        # for every column that has not % in the end calcluate cumulative sum by date with group by variation
+        funnel_data.sort_values(by=['variation', 'dt'], inplace=True)
+        cumsum_columns = [col for col in funnel_data.columns if not col.endswith('%') and col not in ['dt', 'variation']]
+        for col in cumsum_columns:
+            funnel_data[f'{col}_cum'] = funnel_data.groupby('variation')[col].cumsum()
+        # calculate percentage columns
+        percentage_columns = [col for col in funnel_data.columns if col.endswith('%')]
+        for col in percentage_columns:
+            # trim the % sign from the column name, split by -> and trim spaces. find left and right parts in _cum and calculate percentage
+            left_part, right_part = col.replace(', %', '').split(' -> ')
+            left_part = left_part.strip()
+            right_part = right_part.strip()
+            if f'{left_part}_cum' in funnel_data.columns and f'{right_part}_cum' in funnel_data.columns:
+                funnel_data[col] = (funnel_data[f'{right_part}_cum'] / funnel_data[f'{left_part}_cum']) * 100
+            else:
+                funnel_data[col] = np.nan
+        funnel_data = funnel_data.drop(columns=cumsum_columns)
+        results[funnel_name] = funnel_data
+        results[funnel_name].columns = [col.replace('_cum', '') for col in results[funnel_name].columns]
+        # return to initial order of columns based on original_columns
+        results[funnel_name] = results[funnel_name][original_columns]
+        results[funnel_name]['dt'] = pd.to_datetime(results[funnel_name]['dt']).dt.date
+    return results

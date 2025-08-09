@@ -1,3 +1,3 @@
 select
-    toDate('{date}') as dt,
+    toDate('{date}', 'UTC') as dt,
     arrayJoin({variations}) as variation

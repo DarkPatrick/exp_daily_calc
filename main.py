@@ -29,42 +29,16 @@ calc_session = generate_random_id(128)
 
 sql_worker: SqlWorker = SqlWorker()
 
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6308)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5592)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6260)
+# def update_experiments_info():
+#     experiments_df = sql_worker.get_all_experiments()
+#     return experiments_df
 
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6293)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6305)
+# print(update_experiments_info())
 
+# import sys
+# sys.exit()
 
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5682)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5685)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5724)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5748)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5583)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5960)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6050)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6152)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6245)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6404)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5957)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6083)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6029)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6242)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6122)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6308)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6161)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6251)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6314)
-exp_results_gen = ExpResultsGenerator(sql_worker, 6350)
+exp_results_gen = ExpResultsGenerator(sql_worker, 6335)
 
 
 # exp_results_gen.exp_info
@@ -88,15 +62,25 @@ print(url)
 confluence = ConfluenceWorker()
 
 page_info = confluence.get_page_info(url)
-config_dict = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
-if config_dict == {}:
+config_dict_raw = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
+config_dict = {}
+funnels = {}
+if config_dict_raw == {}:
     config_dict  = {'Total': {'pro_rights': 'All'}}
-print(config_dict)
+else:
+    for segment, config in config_dict_raw.items():
+        if 'funnel' not in config_dict_raw[segment]:
+            config_dict[segment] = config_dict_raw[segment] 
+        else:
+            funnels[segment] = config_dict_raw[segment]['funnel']
+# print(config_dict_raw)
+# print(config_dict)
 # print(config_dict['Total'])
-# audience_dict = confluence.parse_audience_table(page_info['current_content'], exp_results_gen.exp_info['id'])
+audience_dict = confluence.parse_audience_table(page_info['current_content'], exp_results_gen.exp_info['id'])
+if audience_dict == {}:
+    audience_dict = {'UGT_IOS': {'sample': 0, 'days': 0}, 'UGT_ANDROID': {'sample': 0, 'days': 0}, 'UG_WEB': {'sample': 0, 'days': 0}}
 # print(audience_dict)
-audience_dict = {'UGT_IOS': {'sample': 0, 'days': 0}, 'UGT_ANDROID': {'sample': 0, 'days': 0}, 'UG_WEB': {'sample': 0, 'days': 0}}
-
+# print(funnels)
 # import sys
 # sys.exit()
 
@@ -122,6 +106,7 @@ for client in clients_options:
                 exp_results_gen.exp_info['calc_version'] = params[1]
         exp_results_gen.exp_info['segment'] = segment
         exp_results_gen.db._current_segment = config_dict[segment]
+        exp_results_gen.db._funnels = funnels
 
         exp_results[client][segment] = exp_results_gen.get_exp_all_calculations()
 
@@ -150,14 +135,21 @@ for client in clients_options:
     """
     full_html_content += html_generator.generate_html_results_table(
         {segment: exp_results[client][segment]['monetization']['cum_stats'] for segment in config_dict}, 
-        'app_monetization_stats', f'{calc_session}_{client}_{segment}')
-    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['retention']['cum_stats']}, 'retention_stats', f'{calc_session}_{client}_Total')
-    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['long_tab_view']['cum_stats']}, 'long_tab_view_stats', f'{calc_session}_{client}_Total')
+        'app_monetization_stats', [f'{calc_session}_{client}_{segment}' for segment in config_dict])
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['retention']['cum_stats']}, 'retention_stats', [f'{calc_session}_{client}_Total'])
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['long_tab_view']['cum_stats']}, 'long_tab_view_stats', [f'{calc_session}_{client}_Total'])
     full_html_content += html_generator.generate_html_results_table(
         {segment: exp_results[client][segment]['monetization']['cum_metrics'] for segment in config_dict}, 
-        'app_monetization_metrics', f'{calc_session}_{client}_{segment}')
-    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['retention']['cum_metrics']}, 'retention_metrics', f'{calc_session}_{client}_Total')
-    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['long_tab_view']['cum_metrics']}, 'long_tab_view_metrics', f'{calc_session}_{client}_Total')
+        'app_monetization_metrics', [f'{calc_session}_{client}_{segment}' for segment in config_dict])
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['retention']['cum_metrics']}, 'retention_metrics', [f'{calc_session}_{client}_Total'])
+    full_html_content += html_generator.generate_html_results_table({'Total': exp_results[client]['Total']['long_tab_view']['cum_metrics']}, 'long_tab_view_metrics', [f'{calc_session}_{client}_Total'])
+    if funnels:
+        for funnel_name, funnel_data in funnels.items():
+            if funnel_name in exp_results[client]['Total']['funnel_data']:
+                full_html_content += html_generator.generate_custom_funnel_section(
+                    exp_results[client]['Total']['funnel_data'][funnel_name], 
+                    funnel_name)
+        
     full_html_content += f"""
     \n\n
     </ac:rich-text-body>

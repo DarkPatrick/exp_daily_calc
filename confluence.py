@@ -110,12 +110,13 @@ class ConfluenceWorker():
             }
         """
         soup = BeautifulSoup(html, 'html.parser')
-        target_header = f"#{id_value} Audience"
+        target_header = f"#{id_value} audience"
 
         # 1) Найти таблицу по заголовку в первой строке
         table = None
         for tbl in soup.find_all('table'):
-            tbody = tbl.find('thead')
+            # print(tbl)
+            tbody = tbl.find('tbody')
             if not tbody:
                 continue
             rows = tbody.find_all('tr')
@@ -123,12 +124,14 @@ class ConfluenceWorker():
                 continue
             # первая строка, первый столбец может быть <th> или <td>
             first_cell = rows[0].find(['th', 'td'])
-            if first_cell and first_cell.get_text(strip=True) == target_header:
+            # print("CELL=", first_cell.get_text(strip=True))
+            if first_cell and first_cell.get_text(strip=True).lower() == target_header:
                 table = tbl
                 break
 
         if table is None:
-            raise ValueError(f"Таблица с заголовком '{target_header}' не найдена")
+            # raise ValueError(f"Таблица с заголовком '{target_header}' не найдена")
+            return {}
 
         # 2) Собрать все строки из <tbody>
         rows = table.find('tbody').find_all('tr')
@@ -144,7 +147,8 @@ class ConfluenceWorker():
         days_row     = next((r for r in reversed(rows) if first_text(r) == "Days"), None)
 
         if not platform_row or not sample_row or not days_row:
-            raise ValueError("Не найдены строки Platform, Sample или Days в таблице")
+            # raise ValueError("Не найдены строки Platform, Sample или Days в таблице")
+            return {}
 
         # Извлечь списки ячеек (в т.ч. могут быть <td> или <th>)
         plat_cells   = platform_row.find_all(['th','td'])
@@ -157,7 +161,8 @@ class ConfluenceWorker():
         days      = [c.get_text(strip=True) for c in days_cells[1:]]
 
         if not (len(platforms) == len(samples) == len(days)):
-            raise ValueError("Число платформ не совпадает с числом значений Sample/Days")
+            # raise ValueError("Число платформ не совпадает с числом значений Sample/Days")
+            return {}
 
         # 3) Построить результирующий словарь
         def maybe_int(s):

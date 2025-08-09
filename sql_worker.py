@@ -5,6 +5,7 @@ import math
 import re
 
 from metabase import Mb_Client
+from sql_custom_funnel_generator import generate_clickhouse_sql
 
 
 
@@ -18,6 +19,7 @@ class SqlWorker():
             password=secrets["password"]
         )
         self._current_segment: dict = {}
+        self._funnels: dict = {}
 
     def get_exp_params(self, exp_info: dict, date: str, exp_end_dt: str) -> dict:
         return dict({
@@ -82,7 +84,7 @@ class SqlWorker():
 
     def get_experiment(self, id) -> dict:
         query = self.get_query("get_exp_info", params=dict({"id": id}))
-        print(query)
+        # print(query)
         query_result = self._mb_client.post("dataset", query)
         df = query_result
         print(df)
@@ -185,6 +187,21 @@ class SqlWorker():
         return query
 
 
+    def  build_custom_funnel_query(self, dag, platform_suffix):
+        # dag = params.get("dag", "")
+        query = f"""
+            with vars as (
+                {self.get_query("date_variation")}
+            ),
+            members as (
+                {self.get_query(f"members_{platform_suffix}")}
+            ),
+            {generate_clickhouse_sql(dag)}
+            select * from vars left join funnel using(dt, variation)
+        """
+        return query
+
+
     def get_exp_daily_monetization_data(self, params: dict = {}):
         monetization_query = self.build_monetization_query(params["platform_suffix"], params["ex_subs_filter"]).format(**params)
         # print(monetization_query)
@@ -203,6 +220,13 @@ class SqlWorker():
         long_tab_view_query = self.build_long_tab_view_query(params["platform_suffix"]).format(**params)
         # print(long_tab_view_query) 
         query_result = self._mb_client.post("dataset", long_tab_view_query)
+        return query_result
+
+
+    def get_exp_daily_custom_funnel_data(self, params: dict = {}):
+        custom_funnel_query = self.build_custom_funnel_query(params["dag"], params["platform_suffix"]).format(**params)
+        # print(custom_funnel_query)
+        query_result = self._mb_client.post("dataset", custom_funnel_query)
         return query_result
 
 
@@ -300,3 +324,61 @@ class SqlWorker():
             print(df)
             full_df = pd.concat([full_df, df], ignore_index=True)
         return full_df
+
+
+    def get_custom_funnel_data(self, exp_info, funnel) -> pd.DataFrame:
+        full_df = pd.DataFrame({})
+        exp_start_dt = datetime.datetime.fromtimestamp(exp_info["date_start"], datetime.timezone.utc)
+        exp_end_dt = datetime.datetime.now(datetime.timezone.utc)
+        exp_end_dt_param = int(datetime.datetime.timestamp(exp_end_dt))
+        if exp_info["date_end"] > exp_info["date_start"]:
+            exp_end_dt = datetime.datetime.fromtimestamp(exp_info["date_end"], datetime.timezone.utc)
+            exp_end_dt_param = exp_info["date_end"]
+        days_cnt = (exp_end_dt.date() - exp_start_dt.date()).days + 1
+        for day in range(days_cnt):
+            current_day = exp_start_dt + datetime.timedelta(days=day)
+            params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
+            params["dag"] = funnel
+            params["platform_suffix"] = exp_info.get("platform_suffix", "app")
+            params["table"] = "default.ug_rt_events_app" if params["platform_suffix"] == "app" else "default.ug_rt_events_web"
+            # print(self.build_custom_funnel_query(params["dag"], params["platform_suffix"]).format(**params))
+            df = self.get_exp_daily_custom_funnel_data(params)
+            print("DAY", day)
+            print(df)
+            full_df = pd.concat([full_df, df], ignore_index=True)
+        return full_df
+
+
+    def get_all_experiments(self) -> pd.DataFrame:
+        query = self.get_query("get_all_experiments")
+        query_result = self._mb_client.post("dataset", query)
+        df = query_result
+        experiments_dict = {
+            "id": [],
+            "date_start": [],
+            "date_end": [],
+            "variations": [],
+            "experiment_event_start": [],
+            "configuration": [],
+            "clients_list": [],
+            "clients_options": [],
+            "url": []
+        }
+        for index, row in df.iterrows():
+            pattern = r'https://alice\.mu\.se[^\s#?"]*(?:\?[^\s#"]*)?'
+            urls = re.findall(pattern, str(row["configuration"]))
+            url = urls[0] if urls else ''
+            if url == '':
+                continue
+            experiments_dict["id"].append(row["id"])
+            experiments_dict["date_start"].append(row["date_start"])
+            experiments_dict["date_end"].append(row["date_end"])
+            experiments_dict["variations"].append(row["variations"])
+            experiments_dict["experiment_event_start"].append(row["experiment_event_start"])
+            experiments_dict["configuration"].append(row["configuration"])
+            experiments_dict["clients_list"].append(re.findall(r'(\w+)', row["clients"]))
+            experiments_dict["clients_options"].append(row["clients_options"])
+            experiments_dict["url"].append(url)
+
+        experiments_df = pd.DataFrame(experiments_dict)
+        return experiments_df

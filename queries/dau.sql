@@ -5,7 +5,7 @@ with dau as (
     from
         default.ug_rt_events_web
     where
-        date between toDate({datetime_start}) and '{date}'
+        date between toDate({datetime_start}, 'UTC') and '{date}'
     and
         unified_id > 0
     and (
@@ -33,7 +33,7 @@ with dau as (
     having
         {pro_rights} and {edu_rights} and {sing_rights} and {practice_rights} and {book_rights}
     and
-        toDate(dau_dt) = '{date}'
+        toDate(dau_dt, 'UTC') = '{date}'
     and
         ({custom_having})
     union all 
@@ -53,7 +53,7 @@ with dau as (
         from
             default.ug_rt_events_web as w
         where
-            date between toDate({datetime_start}) and toDate({datetime_end})
+            date between toDate({datetime_start}, 'UTC') and toDate({datetime_end}, 'UTC')
         and
             app_unified_id is not null
         and
@@ -66,7 +66,7 @@ with dau as (
     on
         a.unified_id = w.app_unified_id
     where
-        date between toDate({datetime_start}) and '{date}'
+        date between toDate({datetime_start}, 'UTC') and '{date}'
     and
         unified_id > 0
     and (
@@ -102,14 +102,14 @@ with dau as (
             1
         )
     and
-        toDate(dau_dt) = '{date}'
+        toDate(dau_dt, 'UTC') = '{date}'
     and
         ({custom_having})
 )
 
 
 select
-    toDate(dau_dt) as dt,
+    toDate(dau_dt, 'UTC') as dt,
     uniqExact(unified_id) as dau
 from
     dau

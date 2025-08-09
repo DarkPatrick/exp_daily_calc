@@ -319,20 +319,20 @@ class HTMLGenerator:
             return rows_dict
 
 
-    def generate_html_results_table(self, segments: dict, template_name: str, calc_session: str) -> str:
+    def generate_html_results_table(self, segments: dict, template_name: str, calc_session: list) -> str:
         htm_rows = ''
         html_content = ''
         # enumerate in df_list
         for i, (segment, df) in enumerate(segments.items()):
             if i > 0:
+                num_columns = html_content.count('<td') + html_content.count('<th')
                 htm_rows += f'<tr><th colspan="{num_columns}" class="highlight-#eae6ff confluenceTd" data-highlight-colour="#eae6ff" bgcolor="#eae6ff">{segment}</th></tr>\n'
             for id in range(len(df.index)):
-                rows_dict: dict = self.generate_htm_dict(df, id, template_name, calc_session)
+                rows_dict: dict = self.generate_htm_dict(df, id, template_name, calc_session[i])
                 with open(f"{self.template_dir}{template_name}_row.html", 'r') as file:
                     html_content = file.read().format(
                         **rows_dict
                     )
-                    num_columns = html_content.count('<td') + html_content.count('<th')
                     htm_rows += html_content + '\n'
 
         with open(f"{self.template_dir}{template_name}_header.html", 'r') as file:
@@ -475,3 +475,51 @@ class HTMLGenerator:
         html_content = template.render(platforms=exp_info['clients_list'], variations=variations, metrics=metrics, data=data, diff_data=diff_data, diff_colours=diff_colours)
         return html_content
 
+
+    def generate_custom_funnel_section(self, funnel_df: pd.DataFrame, funnel_name: str) -> str:
+        # leave only rows with max dt
+        funnel_df = funnel_df.loc[funnel_df['dt'] == funnel_df['dt'].max()].reset_index(drop=True)
+        # drop dt column
+        funnel_df = funnel_df.drop(columns=['dt'])
+        funnel_df['variation'] = funnel_df['variation'].apply(lambda x: 'control' if x == 1 else f'variation {x}')
+        floatfmt: str = "{:,.2f}"
+        intfmt: str = "{:,}"
+        na_rep: str = "—"
+        # print(funnel_df)
+        def fmt(v):
+            if pd.isna(v):
+                return na_rep
+            if isinstance(v, (int,)) and not isinstance(v, bool):
+                # разделитель тысяч запятая; при желании замените на пробел
+                return intfmt.format(v)
+            if isinstance(v, float):
+                return floatfmt.format(v)
+            return str(v)
+
+        columns_meta = [{"title": str(c), "is_percent": str(c).rstrip().endswith("%")} for c in funnel_df.columns]
+        columns_head = columns_meta[0]
+        columns_tail = columns_meta[1:]
+        rows = []
+        for i in range(len(funnel_df)):
+            row_vals = funnel_df.iloc[i].tolist()
+            # 1-й столбец как <th>
+            first_text = fmt(row_vals[0])
+            first_append_percent = bool(columns_head["is_percent"]
+                                        and first_text != na_rep
+                                        and not str(first_text).endswith("%"))
+            first_cell = {"text": first_text, "append_percent": first_append_percent}
+
+            # Остальные столбцы как <td>
+            rest_cells = []
+            for j, v in enumerate(row_vals[1:], start=1):
+                text = fmt(v)
+                append_percent = bool(columns_meta[j]["is_percent"]
+                                    and text != na_rep
+                                    and not str(text).endswith("%"))
+                rest_cells.append({"text": text, "append_percent": append_percent})
+
+            rows.append({"first": first_cell, "rest": rest_cells})
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('custom_funnel.html')
+        html_content = template.render(funnel_name=funnel_name, columns_head=columns_head, columns_tail=columns_tail, rows=rows)
+        return html_content
