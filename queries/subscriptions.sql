@@ -89,6 +89,8 @@ from (
         subscription_id,
         product_id
     having
+        toDate(subscribed_dt, 'UTC') >= '{date}'
+    and
         (lower(funnel_source) not like 'email%' or funnel_source in ('email_reg_offer', 'email_auth_offer'))
     and
         {funnel_source_include}

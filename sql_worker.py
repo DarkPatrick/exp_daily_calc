@@ -30,7 +30,7 @@ class SqlWorker():
                 "exposure_event": self._current_segment.get("exposure_event", exp_info["experiment_event_start"]),
                 "platform": self._current_segment.get("platform", "all"),
                 "include_values": self.generate_sql_list_filter("value", self._current_segment.get("include_values", [])),
-                "exclude_values": self.generate_sql_list_filter("value", [self._current_segment.get("exclude_values", [])], exclude=True),
+                "exclude_values": self.generate_sql_list_filter("value", self._current_segment.get("exclude_values", []), exclude=True),
                 'pro_rights': self.generate_sql_rights_filter("pro", self._current_segment.get("pro_rights", "Free")),
                 'edu_rights': self.generate_sql_rights_filter("edu", self._current_segment.get("edu_rights", "All")),
                 'sing_rights': self.generate_sql_rights_filter("sing", self._current_segment.get("sing_rights", "All")),

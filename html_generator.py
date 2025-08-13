@@ -374,7 +374,7 @@ class HTMLGenerator:
         for plat in platforms_list:
             design_duration = audience_dict[plat]['days']
             experiment_duration = exp_results[plat]['Total']['monetization']['stats'].cohort_date.nunique()
-            design_samples = {b: audience_dict[plat]['sample'] for b in branches}
+            design_samples = {b: int(audience_dict[plat]['sample'] / len(branches)) for b in branches}
             exp_samples = {b: int(exp_results[plat]['Total']['monetization']['cum_stats']['members'][b]) for b in branches}
             platforms.append({
                 'name': plat,

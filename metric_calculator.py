@@ -55,19 +55,33 @@ def calc_monetization_cumulatives(df):
     df['exp_trial_arpu'] = df['trial_revenue_cum'] / df['members_cum']
     df['exp_instant_arpu'] = (df['revenue_cum'] - df['trial_revenue_cum']) / df['members_cum']
 
-    df['prices'] = df['prices'].apply(ast.literal_eval)
-    df['prices_per_buyer'] = df['prices_per_buyer'].apply(ast.literal_eval)
+    # df['prices'] = df['prices'].apply(ast.literal_eval)
+    # df['prices_per_buyer'] = df['prices_per_buyer'].apply(ast.literal_eval)
     
-    df['prices_agg'] = df.groupby('variation')['prices'].transform(cumulative_prices)
-    df['prices_per_buyer_agg'] = df.groupby('variation')['prices_per_buyer'].transform(cumulative_prices)
+    # df['prices_agg'] = df.groupby('variation')['prices'].transform(cumulative_prices)
+    # df['prices_per_buyer_agg'] = df.groupby('variation')['prices_per_buyer'].transform(cumulative_prices)
 
-    df['grouped_sums'] = df['prices_per_buyer_agg'].apply(calculate_grouped_sums)
+    # df['grouped_sums'] = df['prices_per_buyer_agg'].apply(calculate_grouped_sums)
+    arpu_df = calc_cum_mean_variance(df, 'exp_arpu', 'arpu_var', 'members')
+    arpu_df.drop(columns=['exp_arpu_cum'], inplace=True)
+    # rename arpu_var to exp_arpu_var
+    arpu_df.rename(columns={'arpu_var_cum': 'exp_arpu_var_cum'}, inplace=True)
+    arppu_df = calc_cum_mean_variance(df, 'arppu', 'arppu_var', 'members')
+    arppu_df.drop(columns=['arppu_cum'], inplace=True)
+    # todo: fix to aov later
+    aov_df = calc_cum_mean_variance(df, 'aov', 'arppu_var', 'members')
+    aov_df.drop(columns=['aov_cum'], inplace=True)
+    # rename arppu_var to aov_var
+    aov_df.rename(columns={'arppu_var_cum': 'aov_var_cum'}, inplace=True)
+    df = df.merge(arpu_df, on=['dt', 'variation'], how='left')
+    df = df.merge(arppu_df, on=['dt', 'variation'], how='left')
+    df = df.merge(aov_df, on=['dt', 'variation'], how='left')
     df.to_csv("tt.csv")
-    df = df.assign(
-        aov_var = lambda x: x.apply(lambda row: np.var(row['prices_agg']), axis=1),
-        arppu_var = lambda x: x.apply(lambda row: np.var(row['grouped_sums']), axis=1),
-        exp_arpu_var = lambda x: x.apply(lambda row: np.var(np.append(row['grouped_sums'], np.zeros(row['members_cum'] - row['buyer_cnt_cum']))), axis=1)
-    )
+    # df = df.assign(
+    #     aov_var = lambda x: x.apply(lambda row: np.var(row['prices_agg']), axis=1),
+    #     arppu_var = lambda x: x.apply(lambda row: np.var(row['grouped_sums']), axis=1),
+    #     exp_arpu_var = lambda x: x.apply(lambda row: np.var(np.append(row['grouped_sums'], np.zeros(row['members_cum'] - row['buyer_cnt_cum']))), axis=1)
+    # )
     
     df['trial share, %'] = df['access_trial_cnt_cum'] / df['access_cnt_cum'] * 100
 
@@ -84,9 +98,12 @@ def calc_monetization_cumulatives(df):
         'charged_trial_cnt_cum', 'active_charged_trial_cnt_cum',  'trial_subscriber_cnt_cum', 'cancel_trial_cnt_cum',
         'charge_cnt_cum', 'refund_14d_cnt_cum', 'buyer_cnt_cum', 'cancel_14d_cnt_cum', 'cancel_1m_cnt_cum', 'revenue_cum',
         'charge -> 1m cancel, %', 'arppu', 'aov', 'exp_arpu', 'exp_trial_arpu', 'exp_instant_arpu',
-        'aov_var', 'arppu_var', 
-        'exp_arpu_var'
+        # 'aov_var', 'arppu_var', 
+        # 'exp_arpu_var'
+        'aov_var_cum', 'arppu_var_cum', 
+        'exp_arpu_var_cum'
     ]
+    
 
     result_df = df[final_columns]
     # rename columns. remove _cum suffix
@@ -147,7 +164,7 @@ def calc_cum_mean_variance(df, mean_col, var_col, members_col):
         for _, row in group.iterrows():
             n2 = row[members_col]
             mean2 = row[mean_col]
-            print("mean_col=", mean_col)
+            # print("mean_col=", mean_col)
             M2_2 = row['mean_2']
 
             if n_total == 0:
@@ -160,7 +177,7 @@ def calc_cum_mean_variance(df, mean_col, var_col, members_col):
                 delta = mean2 - mean_total
                 n_combined = n_total + n2
                 mean_total = (n_total * mean_total + n2 * mean2) / n_combined
-                print("M2_total=", M2_total, "M2_2=", M2_2, "delta=", delta, "n_total=", n_total, "n2=", n2, "n_combined=", n_combined)
+                # print("M2_total=", M2_total, "M2_2=", M2_2, "delta=", delta, "n_total=", n_total, "n2=", n2, "n_combined=", n_combined)
                 M2_total = M2_total + M2_2 + delta**2 * n_total * n2 / n_combined
                 n_total = n_combined
 

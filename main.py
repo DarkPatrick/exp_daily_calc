@@ -4,8 +4,7 @@
 # воронка тура
 # воронка регвола
 # лтв 2 года
-# сегменты через конфиг в доке вместо сторк с фильтрам хардкодить костаны: разбивка по трафику. доступы в туре / только сплешы / без сплешей / без тура
-# trials share починить график
+# design check: надо поделить на количество веток
 import pandas as pd
 from sql_worker import SqlWorker
 import re
@@ -38,7 +37,16 @@ sql_worker: SqlWorker = SqlWorker()
 # import sys
 # sys.exit()
 
-exp_results_gen = ExpResultsGenerator(sql_worker, 6335)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6335)
+
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6374)
+
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6320)
+
+
+exp_results_gen = ExpResultsGenerator(sql_worker, 6359)
 
 
 # exp_results_gen.exp_info
@@ -73,12 +81,13 @@ else:
             config_dict[segment] = config_dict_raw[segment] 
         else:
             funnels[segment] = config_dict_raw[segment]['funnel']
-# print(config_dict_raw)
-# print(config_dict)
+print(config_dict_raw)
+print(config_dict)
 # print(config_dict['Total'])
 audience_dict = confluence.parse_audience_table(page_info['current_content'], exp_results_gen.exp_info['id'])
 if audience_dict == {}:
     audience_dict = {'UGT_IOS': {'sample': 0, 'days': 0}, 'UGT_ANDROID': {'sample': 0, 'days': 0}, 'UG_WEB': {'sample': 0, 'days': 0}}
+print(audience_dict)
 # print(audience_dict)
 # print(funnels)
 # import sys
@@ -159,9 +168,19 @@ for client in clients_options:
 
 # print(full_html_content)
 
+# save full_html_content to a htm file
+# html_file_path = f"exp_results/exp_{exp_results_gen.exp_info['id']}_{calc_session}.htm"
+# with open(html_file_path, 'w', encoding='utf-8') as html_file:
+#     html_file.write(full_html_content)
+# Upload HTML file to Confluence
+
 # import sys
 # sys.exit()
 
+
+# Failed to update page. Status code: 400
+# {"statusCode":400,"data":{"authorized":false,"valid":true,"allowedInReadOnlyMode":true,"errors":[],"successful":false},"message":"Error parsing xhtml: Unexpected end of input block in comment\n at [row,col {unknown-source}]: [870,21096]","reason":"Bad Request"}
+# (.venv) (.venv) egorsemin@esemin exp_daily_calc % 
 
 for client in clients_options:
     for segment in config_dict:

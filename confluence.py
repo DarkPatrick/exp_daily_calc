@@ -69,9 +69,13 @@ class ConfluenceWorker():
             if not rows:
                 continue
             # смотрим на первый ряд
-            first_cell = rows[0].find('th')
+            first_cell = rows[0].find(['th', 'td'])
+            print("first_cell=",first_cell,"target_header=", target_header)
+            # it can be a button inside with text that i am looking for
             if not first_cell or first_cell.get_text(strip=True) != target_header:
-                continue
+                button = first_cell.find(['button'])
+                if not button or button.get_text(strip=True) != target_header:
+                    continue
 
             # 2) Собираем результат, пропуская первые два ряда (заголовок конфигурации и заголовки колонок)
             result = {}
@@ -206,7 +210,7 @@ class ConfluenceWorker():
 
     def sanitize_xhtml(self, xhtml: str) -> str:
         # Remove illegal XML characters: nulls and control chars except tab, newline, carriage return
-        return re.sub(r"[\x00-\x08\x0B-\x0C\x0E-\x1F]", "", xhtml)
+        return re.sub(r"<!--.*?-->", "", re.sub(r"[\x00-\x08\x0B-\x0C\x0E-\x1F]", "", xhtml), flags=re.S)
 
     def upload_data(self, page_url, content):
         headers = {
