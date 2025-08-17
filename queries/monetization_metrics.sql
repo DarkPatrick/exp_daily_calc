@@ -23,6 +23,8 @@ select
     sumIf(s.revenue, subscribed_dt < exp_start_dt and charge_dt >= subscribed_dt) as recurrent_revenue,
     sumIf(s.revenue, subscribed_dt between exp_start_dt and {datetime_end} and trial > 0 and not (toDate(charge_dt) = toDate(subscribed_dt)) and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day) as trial_revenue,
     sumIf(s.revenue, subscribed_dt < exp_start_dt and trial > 0 and not (toDate(charge_dt) = toDate(subscribed_dt)) and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day) as active_trial_revenue,
+    sumIf(s.lifetime_revenue, subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day) 
+        - sumIf(s.refund_revenue, subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day and toDate(refund_dt) between toDateTime(charge_dt) and toDateTime(charge_dt) + interval 14 day) as lifetime_revenue,
     uniqIf((subscription_id, product_id), upgrade_dt between exp_start_dt and {datetime_end}) as upgrade_cnt,
     sumIf(s.upgrade_revenue, upgrade_dt between exp_start_dt and {datetime_end}) as upgrade_revenue,
     -- groupArrayIf(s.revenue, subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day) as prices,
@@ -32,6 +34,7 @@ select
     --     groupArrayIf(-s.refund_revenue, subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day and toDateTime(s.refund_dt) between toDateTime(charge_dt) and toDateTime(charge_dt) + interval 14 day)
     -- ) as prices,
     varSamp(if(subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day, s.revenue, 0) - if(subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day and toDateTime(s.refund_dt) between toDateTime(charge_dt) and toDateTime(charge_dt) + interval 14 day, s.refund_revenue, 0)) as arpu_var,
+    varSamp(if(subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day, s.lifetime_revenue, 0) - if(subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day and toDateTime(s.refund_dt) between toDateTime(charge_dt) and toDateTime(charge_dt) + interval 14 day, s.refund_revenue, 0)) as lifetime_arpu_var,
     varSampIf(if(subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day, s.revenue, 0) - if(subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day and toDateTime(s.refund_dt) between toDateTime(charge_dt) and toDateTime(charge_dt) + interval 14 day, s.refund_revenue, 0), subscribed_dt between exp_start_dt and {datetime_end} and toDateTime(charge_dt) between toDateTime(subscribed_dt) and toDateTime(first_charge_expected_dt) + interval 1 day) as arppu_var,
 
     -- arrayMap(x -> arrayFilter(y -> y is not null, x),
@@ -56,6 +59,7 @@ from
 left join
 -- inner join
     subscriptions as s
+    -- sandbox.ug_monetization_exp_calc_subscriptions_3 as s
 using(unified_id)
 -- where
 --     subscribed_dt between exp_start_dt and {datetime_end}

@@ -63,7 +63,7 @@ class Mb_Client(BaseModel):
                 "query": query
             }
         }
-        for attempt in range(5):
+        for attempt in range(10):
             post = requests.post(
                 f'{self.url}/api/{api_endpoint}',
                 headers=self.session_header | {

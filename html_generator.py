@@ -46,6 +46,8 @@ class HTMLGenerator:
                     'buyers': f"""{Decimal(f"{df['buyers'].iloc[id]:.2g}"):f}%""",
                     'charges': f"""{Decimal(f"{df['charges'].iloc[id]:.2g}"):f}%""",
                     'revenue': f"""{Decimal(f"{df['revenue'].iloc[id]:.2g}"):f}%""",
+                    # temp
+                    'lifetime_revenue': f"""{Decimal(f"{df['lifetime_revenue'].iloc[id]:.2g}"):f}%""",
                     'cancels_14d': f"""{Decimal(f"{df['cancel 14d'].iloc[id]:.2g}"):f}%""",
                     'refunds_14d': f"""{Decimal(f"{df['refund 14d'].iloc[id]:.2g}"):f}%"""
                 }
@@ -62,6 +64,7 @@ class HTMLGenerator:
                     'buyers': int(df['buyers'].iloc[id]),
                     'charges': int(df['charges'].iloc[id]),
                     'revenue': f"${int(df['revenue'].iloc[id])}",
+                    'lifetime_revenue': f"${int(df['lifetime_revenue'].iloc[id])}",
                     'cancels_14d': int(df['cancel 14d'].iloc[id]),
                     'refunds_14d': int(df['refund 14d'].iloc[id])
                 }
@@ -70,6 +73,7 @@ class HTMLGenerator:
             if df.index[id] == 'pvalue':
                 rows_dict: dict = {
                     'arpu_color':  self.generate_metric_color(df['arpu'].iloc[id], df['arpu'].iloc[id - 1]),
+                    'lifetime_arpu_color':  self.generate_metric_color(df['lifetime_arpu'].iloc[id], df['lifetime_arpu'].iloc[id - 1]),
                     'aov_color': self.generate_metric_color(df['aov'].iloc[id], df['aov'].iloc[id - 1]),
                     'arppu_color': self.generate_metric_color(df['arppu'].iloc[id], df['arppu'].iloc[id - 1]),
                     'access cr, %_color': self.generate_metric_color(df['access cr, %'].iloc[id], df['access cr, %'].iloc[id - 1]),
@@ -80,6 +84,7 @@ class HTMLGenerator:
                     'charge -> 14d refund, %_color': self.generate_metric_color(df['charge -> 14d refund, %'].iloc[id], df['charge -> 14d refund, %'].iloc[id - 1], False),
                     'variation': df.index[id],
                     'arpu': f"{self.pvalue_round(df['arpu'].iloc[id])}",
+                    'lifetime_arpu': f"{self.pvalue_round(df['lifetime_arpu'].iloc[id])}",
                     'aov': f"{self.pvalue_round(df['aov'].iloc[id])}",
                     'arppu': f"{self.pvalue_round(df['arppu'].iloc[id])}",
                     'access cr, %': f"{self.pvalue_round(df['access cr, %'].iloc[id])}",
@@ -92,6 +97,7 @@ class HTMLGenerator:
             elif df.index[id] == 'cumulatives':
                 rows_dict: dict = {
                     'arpu_color': '',
+                    'lifetime_arpu_color': '',
                     'aov_color': '',
                     'arppu_color': '',
                     'access cr, %_color': '',
@@ -102,6 +108,7 @@ class HTMLGenerator:
                     'charge -> 14d refund, %_color': '',
                     'variation': df.index[id],
                     'arpu': self.generate_image_markup(f'arpu_pvalues_diff_confidence_intervals_{calc_session}.png'),
+                    'lifetime_arpu': self.generate_image_markup(f'lifetime_arpu_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'aov': self.generate_image_markup(f'aov_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'arppu': self.generate_image_markup(f'arppu_pvalues_diff_confidence_intervals_{calc_session}.png'),
                     'access cr, %': self.generate_image_markup(f'access cr, %_pvalues_diff_confidence_intervals_{calc_session}.png'),
@@ -119,6 +126,7 @@ class HTMLGenerator:
                     money_suffix = '%'
                 rows_dict: dict = {
                     'arpu_color': '',
+                    'lifetime_arpu_color': '',
                     'aov_color': '',
                     'arppu_color': '',
                     'access cr, %_color': '',
@@ -129,6 +137,7 @@ class HTMLGenerator:
                     'charge -> 14d refund, %_color': '',
                     'variation': df.index[id],
                     'arpu': f"""{money_prefix}{Decimal(f"{df['arpu'].iloc[id]:.3g}"):f}{money_suffix}""",
+                    'lifetime_arpu': f"""{money_prefix}{Decimal(f"{df['lifetime_arpu'].iloc[id]:.3g}"):f}{money_suffix}""",
                     'aov': f"""{money_prefix}{Decimal(f"{df['aov'].iloc[id]:.3g}"):f}{money_suffix}""",
                     'arppu': f"""{money_prefix}{Decimal(f"{df['arppu'].iloc[id]:.3g}"):f}{money_suffix}""",
                     'access cr, %': f"""{Decimal(f"{df['access cr, %'].iloc[id]:.3g}"):f}%""",

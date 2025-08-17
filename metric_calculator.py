@@ -29,7 +29,7 @@ def calc_monetization_cumulatives(df):
         'members', 'subscriber_cnt', 'access_cnt', 'access_instant_cnt',
         'access_ex_trial_cnt', 'access_trial_cnt', 'active_trial_cnt', 'trial_subscriber_cnt',
         'charged_trial_cnt', 'active_charged_trial_cnt', 'cancel_trial_cnt', 'trial_buyer_cnt', 'late_charged_cnt',
-        'buyer_cnt', 'charge_cnt', 'refund_14d_cnt', 'cancel_14d_cnt', 'cancel_1m_cnt', 'revenue',
+        'buyer_cnt', 'charge_cnt', 'refund_14d_cnt', 'cancel_14d_cnt', 'cancel_1m_cnt', 'revenue', 'lifetime_revenue',
         'recurrent_charge_cnt', 'recurrent_revenue', 'trial_revenue', 'active_trial_revenue',
         'upgrade_cnt', 'upgrade_revenue'
     ]
@@ -52,6 +52,7 @@ def calc_monetization_cumulatives(df):
     df['arppu'] = df['revenue_cum'] / df['buyer_cnt_cum']
     df['aov'] = df['revenue_cum'] / df['charge_cnt_cum']
     df['exp_arpu'] = df['revenue_cum'] / df['members_cum']
+    df['lifetime_arpu'] = df['lifetime_revenue_cum'] / df['members_cum']
     df['exp_trial_arpu'] = df['trial_revenue_cum'] / df['members_cum']
     df['exp_instant_arpu'] = (df['revenue_cum'] - df['trial_revenue_cum']) / df['members_cum']
 
@@ -64,6 +65,8 @@ def calc_monetization_cumulatives(df):
     # df['grouped_sums'] = df['prices_per_buyer_agg'].apply(calculate_grouped_sums)
     arpu_df = calc_cum_mean_variance(df, 'exp_arpu', 'arpu_var', 'members')
     arpu_df.drop(columns=['exp_arpu_cum'], inplace=True)
+    lifetime_arpu_df = calc_cum_mean_variance(df, 'lifetime_arpu', 'lifetime_arpu_var', 'members')
+    lifetime_arpu_df.drop(columns=['lifetime_arpu_cum'], inplace=True)
     # rename arpu_var to exp_arpu_var
     arpu_df.rename(columns={'arpu_var_cum': 'exp_arpu_var_cum'}, inplace=True)
     arppu_df = calc_cum_mean_variance(df, 'arppu', 'arppu_var', 'members')
@@ -74,6 +77,7 @@ def calc_monetization_cumulatives(df):
     # rename arppu_var to aov_var
     aov_df.rename(columns={'arppu_var_cum': 'aov_var_cum'}, inplace=True)
     df = df.merge(arpu_df, on=['dt', 'variation'], how='left')
+    df = df.merge(lifetime_arpu_df, on=['dt', 'variation'], how='left')
     df = df.merge(arppu_df, on=['dt', 'variation'], how='left')
     df = df.merge(aov_df, on=['dt', 'variation'], how='left')
     df.to_csv("tt.csv")
@@ -96,12 +100,11 @@ def calc_monetization_cumulatives(df):
         'member -> buyer, %', 'subscription -> charge, %', 'charge -> 14d cancel, %',
         'charge -> 14d refund, %',
         'charged_trial_cnt_cum', 'active_charged_trial_cnt_cum',  'trial_subscriber_cnt_cum', 'cancel_trial_cnt_cum',
-        'charge_cnt_cum', 'refund_14d_cnt_cum', 'buyer_cnt_cum', 'cancel_14d_cnt_cum', 'cancel_1m_cnt_cum', 'revenue_cum',
-        'charge -> 1m cancel, %', 'arppu', 'aov', 'exp_arpu', 'exp_trial_arpu', 'exp_instant_arpu',
+        'charge_cnt_cum', 'refund_14d_cnt_cum', 'buyer_cnt_cum', 'cancel_14d_cnt_cum', 'cancel_1m_cnt_cum', 'revenue_cum', 'lifetime_revenue_cum',
+        'charge -> 1m cancel, %', 'arppu', 'aov', 'exp_arpu', 'lifetime_arpu', 'exp_trial_arpu', 'exp_instant_arpu',
         # 'aov_var', 'arppu_var', 
         # 'exp_arpu_var'
-        'aov_var_cum', 'arppu_var_cum', 
-        'exp_arpu_var_cum'
+        'aov_var_cum', 'arppu_var_cum', 'exp_arpu_var_cum', 'lifetime_arpu_var_cum'
     ]
     
 
@@ -150,6 +153,11 @@ def calc_retention_cumulatives(df):
 
 def calc_cum_mean_variance(df, mean_col, var_col, members_col):
     df_sorted = df.sort_values('dt').copy()
+    df_sorted[mean_col] = df_sorted[mean_col].replace('NaN', float('nan'))
+    df_sorted[var_col] = df_sorted[var_col].replace('NaN', float('nan'))
+    df_sorted[members_col] = df_sorted[members_col].replace('NaN', float('nan'))
+    # if  float(df_sorted[var_col]) == float('nan') or float(df_sorted[members_col]) == float('nan'):
+    #     return pd.DataFrame([])
     df_sorted['mean_2'] = df_sorted[var_col] * (df_sorted[members_col] - 1)
     # if df_sorted[members_col] == 0:
     #     df_sorted['mean_2'] = 0
@@ -161,11 +169,12 @@ def calc_cum_mean_variance(df, mean_col, var_col, members_col):
         mean_total = 0.0
         M2_total = 0.0
 
+        # print(group)
         for _, row in group.iterrows():
             n2 = row[members_col]
-            mean2 = row[mean_col]
+            mean2 = float(row[mean_col])
             # print("mean_col=", mean_col)
-            M2_2 = row['mean_2']
+            M2_2 = float(row['mean_2'])
 
             if n_total == 0:
                 n_total = n2
@@ -181,6 +190,7 @@ def calc_cum_mean_variance(df, mean_col, var_col, members_col):
                 M2_total = M2_total + M2_2 + delta**2 * n_total * n2 / n_combined
                 n_total = n_combined
 
+            # print("mean2=",mean2, "M2_2=", M2_2, "M2_total=", M2_total, "n_total=", n_total)
             var_sample = M2_total / (n_total - 1) if n_total > 1 else float('nan')
 
             records.append({

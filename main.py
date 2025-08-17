@@ -17,6 +17,7 @@ from tqdm import tqdm
 from confluence import ConfluenceWorker
 from exp_results_generator import ExpResultsGenerator
 from html_generator import HTMLGenerator
+from agent import generate_gpt_prompt, ask_gpt_opinion, gpt_advice_to_confluence_html
 
 
 
@@ -48,6 +49,11 @@ sql_worker: SqlWorker = SqlWorker()
 
 exp_results_gen = ExpResultsGenerator(sql_worker, 6359)
 
+# exp_results_gen = ExpResultsGenerator(sql_worker, 4722)
+
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 5238)
+
 
 # exp_results_gen.exp_info
 # for platform in exp_results_gen.exp_info['clients_list']:
@@ -73,8 +79,9 @@ page_info = confluence.get_page_info(url)
 config_dict_raw = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
 config_dict = {}
 funnels = {}
-if config_dict_raw == {}:
+if config_dict_raw == {} or config_dict_raw is None:
     config_dict  = {'Total': {'pro_rights': 'All'}}
+    # config_dict  = {'Total': {'pro_rights': 'Free', 'Platform': 'Phone'}, 'Tour accesses only': {'pro_rights': 'Free', 'Platform': 'Phone', 'funnel_source_include': ['Tour Install']}}
 else:
     for segment, config in config_dict_raw.items():
         if 'funnel' not in config_dict_raw[segment]:
@@ -119,6 +126,25 @@ for client in clients_options:
 
         exp_results[client][segment] = exp_results_gen.get_exp_all_calculations()
 
+
+solution = """
+We'll launch ABC test. The content of the "video ads" will vary in the test variations
+In the test iterations, we show a clip if we receive an "admob_fail" event. We show the clip no more than once every 30 seconds and no more than 5 times a day (showing to 80% of the audience and we know from the previous project, then the first 3 showings are the most effective for conversion)
+(предупреждение) We don't display the new interstitial in offline mode
+We are rolling it out to all users without Pro rights (both new users and former subscribers)
+For the test, we will take the most converting creatives from the paid UA team (list - https://app.milanote.com/1Uz4yo1Ktmndbf/pua-3049-share-creatives-ug?p=kdJPb3KpT0Z)
+We've chosen two formats: playing songs by tabs and by chords
+Keep the sound in the video, but turn it off by default
+A close button ("x") appears after 5 seconds (animation of a circle filling up and then the cross). Ensure that the tap area matches the cross in the current ad interstitials
+Add a "Try for Free" button on bottom of the video. The button is active and visible throughout the entire video.
+When you click on the advertisement, we open the standard pro-paywall. The availability of a trial plan on the paywall is determined by the standard current procedure and may vary depending on the user's past subscriptions
+If the video ends, stop it on the last frame. The user can only exit by clicking the ("x")
+"""
+
+prompt = generate_gpt_prompt(clients_options, config_dict, exp_results, solution)
+gpt_advice = ask_gpt_opinion(prompt)
+# print(gpt_advice)
+
 # import sys
 # sys.exit()
 
@@ -127,12 +153,15 @@ html_generator = HTMLGenerator()
 full_html_content = ''
 full_html_content += html_generator.generate_exp_results_header(exp_results_gen.exp_info)
 full_html_content += html_generator.generate_html_header_table(exp_results, audience_dict)
-full_html_content += html_generator.generate_decision_section()
+# full_html_content += html_generator.generate_decision_section()
+# print(gpt_advice_to_confluence_html(gpt_advice))
+full_html_content += gpt_advice_to_confluence_html(gpt_advice)
 
 full_html_content += html_generator.generate_forecast_section(exp_results_gen.exp_info, exp_results)
 
 # import sys
 # sys.exit()
+
 full_html_content += '\n\n<h2>Significance analysis</h2>\n\n'
 
 for client in clients_options:
@@ -178,9 +207,6 @@ for client in clients_options:
 # sys.exit()
 
 
-# Failed to update page. Status code: 400
-# {"statusCode":400,"data":{"authorized":false,"valid":true,"allowedInReadOnlyMode":true,"errors":[],"successful":false},"message":"Error parsing xhtml: Unexpected end of input block in comment\n at [row,col {unknown-source}]: [870,21096]","reason":"Bad Request"}
-# (.venv) (.venv) egorsemin@esemin exp_daily_calc % 
 
 for client in clients_options:
     for segment in config_dict:

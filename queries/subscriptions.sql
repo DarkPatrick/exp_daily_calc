@@ -9,7 +9,14 @@ select
         when lower(platform) like '%ios%' then 0.7
         when lower(platform) like '%and%' then 0.85
         else 1
-    end as refund_revenue
+    end as refund_revenue,
+    arraySum(arrayMap(x -> x.2 * 
+    case
+        when lower(platform) like '%ios%' and x.1 between toDate(subscribed_dt) and toDate(subscribed_dt) + interval 1 year then 0.7
+        when lower(platform) like '%ios%' or lower(platform) like '%and%' then 0.85
+        else 1
+    end
+    , all_charges_arr_uniq)) as lifetime_revenue
 from (
     select
         s.subscription_id as subscription_id,
@@ -62,7 +69,9 @@ from (
         minIf(toUnixTimestamp(s.datetime), s.event in ('Upgrade', 'Crossgrade')) as upgrade_dt,
         argMinIf(s.usd_price, s.datetime, s.event = 'Charged') as revenue_gross,
         argMinIf(s.usd_price, s.datetime, s.event = 'Refunded') as refund_revenue_gross,
-        argMinIf(-toFloat32OrZero(s.`params.str_value`[indexOf(s.`params.key`, 'usd_refund')]), s.datetime, s.event in ('Upgrade', 'Crossgrade')) as upgrade_revenue
+        argMinIf(-toFloat32OrZero(s.`params.str_value`[indexOf(s.`params.key`, 'usd_refund')]), s.datetime, s.event in ('Upgrade', 'Crossgrade')) as upgrade_revenue,
+        groupArrayIf((s.date, s.usd_price), s.event = 'Charged') as all_charges_arr,
+        arrayFilter((t, i) -> i = 1 or t.1 != all_charges_arr[i-1].1, all_charges_arr, arrayEnumerate(all_charges_arr)) as all_charges_arr_uniq
     from
         default.ug_subscriptions_events as s
     -- left join

@@ -8,6 +8,11 @@ final_arpu:
   mean: final_arpu
   len: members
   var: exp_arpu_var
+lifetime_arpu:
+  title: lifetime_arpu
+  mean: lifetime_arpu
+  len: members
+  var: lifetime_arpu_var
 aov:
   title: aov
   mean: aov
@@ -262,10 +267,12 @@ STATS:
   charge_cnt: charges
   revenue: revenue
   final_revenue: final_revenue
+  lifetime_revenue: lifetime_revenue
   refund_14d_amount: refund 14d amount
   dispute_14d_amount: dispute 14d amount
   exp_arpu: exp arpu
   final_arpu: final arpu
+  lifetime_arpu: lifetime arpu
   arppu: arppu
   aov: aov
   retention_1d_cnt: retention 1d
