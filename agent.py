@@ -56,7 +56,7 @@ def generate_gpt_prompt(clients_options: dict, config_dict: dict, exp_results: l
 
     Для каждой тестовой ветки идут три строки: metric values, % diff (к контролю), pvalue.
 
-    Считаем значимыми эффекты при pvalue < 0.05 (если не указано иное в Solution).
+    Считаем значимыми эффекты при pvalue < 0.05 (если не указано иное в описании эксперимента).
 
     В Results перечисли только статистически значимые изменения (±), сгруппировав по типу метрик (из description) и platform/segment и по ветке. Формат пунктов:
     "[platform / segment / variation] metric: +X%, кратко смысл (рост/падение)".
@@ -67,20 +67,18 @@ def generate_gpt_prompt(clients_options: dict, config_dict: dict, exp_results: l
     Если значимые изменения повторяются в схожих метриках, то суммируй ответ в общих чертах. например, большая часть Tab View метрик просела: пиши Tab View metrics decreased by x%-y%
     Если сильно значимо просело много метрик, то достаточно указать самые важные: access cr, % и arpu
     Только не схлопывай группы платформ: по WEB / ANDROID / IOS всегда должны быть отделные резульататы
+    Если в двух сегментах одинаковые изменения по метрике, то не повторяйся в выводах, а просто оставь только для первого сегмента
 
     В Conclusion дай управленческую рекомендацию (раскатывать/не раскатывать/доисследовать), учитывая баланс метрик.
 
     В Next steps предложи 1-3 конкретных шагов с приоритетами.
     весь текст пиши по-ангийски
+    по возможности в Conclusion и Next steps используй данные из описания эксперимента
 
-Входные данные:
-
+Описание эксперимента:
 {exp_solution}
-"""
-    for client in clients_options:
-        for segment in config_dict:
-            prompt += f"""
-            во всех табилцах одинаковый формат:
+Входные данные:
+во всех табилцах одинаковый формат:
             1 строка - контрольная вариация Control
             2 строка - тестовая вариация Variation #2
             3 строка - diff, % = (Variation #2 - Control) / Control * 100
@@ -89,6 +87,10 @@ def generate_gpt_prompt(clients_options: dict, config_dict: dict, exp_results: l
                 тестовая вариация Variation #X
                 diff, % = (Variation #X - Control) / Control * 100
                 pvalue
+"""
+    for client in clients_options:
+        for segment in config_dict:
+            prompt += f"""
             ### table
             description=monetization metics
             platform={client}

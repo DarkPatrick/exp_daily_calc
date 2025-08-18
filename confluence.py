@@ -182,6 +182,140 @@ class ConfluenceWorker():
         return result
 
 
+    def _norm_text(self, node) -> str:
+        return node.get_text(" ", strip=True) if hasattr(node, "get_text") else ""
+
+
+    def _find_h1_section(self, soup: BeautifulSoup, title: str):
+        for h in soup.find_all(['h1']):
+            if self._norm_text(h) == title:
+                return h
+        return None
+
+
+    def _iter_section_nodes(self, h1):
+        """
+        Идем по элементам после данного h1 до следующего h1 (не включая его).
+        """
+        for el in h1.next_elements:
+            if getattr(el, "name", None) == "h1":
+                break
+            # интересуют только теги
+            if getattr(el, "name", None):
+                yield el
+
+
+    def _next_nonempty_in_section(self, start_node, section_nodes):
+        """
+        Возвращает следующий по порядку в секции элемент с непустым текстом.
+        """
+        found = False
+        for el in section_nodes:
+            if el is start_node:
+                found = True
+                continue
+            if found:
+                txt = self._norm_text(el)
+                if txt:
+                    return el
+        return None
+
+
+    def extract_solution_bullets(self, html: str, exp_id: str) -> str:
+        def _is_solution_node(node) -> bool:
+            return self._norm_text(node).lower() == "solution"
+
+        def _find_solution_with_exp_id(section_nodes, exp_marker: str):
+            for node in section_nodes:
+                if _is_solution_node(node):
+                    nxt = self._next_nonempty_in_section(node, section_nodes)
+                    if nxt and self._norm_text(nxt) == exp_marker:
+                        return node
+            return None
+
+        def _find_first_solution(section_nodes):
+            for node in section_nodes:
+                if _is_solution_node(node):
+                    return node
+            return None
+
+        def _find_nearest_list_after(anchor, section_nodes):
+            """
+            Ищем ближайший <ul>/<ol> после anchor в пределах той же секции.
+            Сначала — среди его следующих элементов (next_elements),
+            ограничиваясь узлами секции, затем — среди его потомков на всякий случай.
+            """
+            seen_anchor = False
+            for el in section_nodes:
+                if el is anchor:
+                    seen_anchor = True
+                    continue
+                if seen_anchor and getattr(el, "name", None) in ("ul", "ol"):
+                    return el
+
+            # fallback: если список вложен глубже в самом anchor
+            for el in anchor.descendants:
+                if getattr(el, "name", None) in ("ul", "ol"):
+                    return el
+            return None
+
+        def _li_text_without_sublists(li) -> str:
+            parts = []
+            for child in li.contents:
+                name = getattr(child, "name", None)
+                if name in ("ul", "ol"):
+                    continue
+                if hasattr(child, "get_text"):
+                    text = child.get_text(" ", strip=True)
+                else:
+                    text = str(child).strip()
+                if text:
+                    parts.append(text)
+            return " ".join(parts).strip()
+
+        def _render_list_recursive(tag, level, out_lines):
+            if tag.name not in ("ul", "ol"):
+                return
+            # прямые <li> без захода вглубь (чтобы корректно обработать вложенность)
+            for li in tag.find_all("li", recursive=False):
+                text = _li_text_without_sublists(li)
+                out_lines.append(("  " * level) + "- " + text if text else ("  " * level) + "-")
+                # обрабатываем вложенные списки, если есть
+                for sub in li.find_all(["ul", "ol"], recursive=False):
+                    _render_list_recursive(sub, level + 1, out_lines)
+
+        def _render_list(list_tag) -> str:
+            """Преобразует <ul>/<ol> в строку с маркерами `- ` и отступами для вложенностей."""
+            lines = []
+            _render_list_recursive(list_tag, 0, lines)
+            return "\n".join(lines)
+
+        soup = BeautifulSoup(html, 'html.parser')
+        h1 = self._find_h1_section(soup, "Description of the Solution & Mockups")
+        if not h1:
+            return ''
+
+        section_nodes = list(self._iter_section_nodes(h1))
+
+        # 1) Пытаемся найти 'Solution' + следующий непустой элемент '#{exp_id}'
+        target_pair = f"#{exp_id}".strip()
+        solution_node = _find_solution_with_exp_id(section_nodes, target_pair)
+
+        # 2) Если связка не найдена — берём первый 'Solution'
+        if solution_node is None:
+            solution_node = _find_first_solution(section_nodes)
+            if solution_node is None:
+                return ''
+
+        # 3) Ищем ближайший список после найденного 'Solution'
+        list_tag = _find_nearest_list_after(solution_node, section_nodes)
+        if list_tag is None:
+            return ''
+
+        # 4) Рендерим список в текст c буллетами и отступами
+        return _render_list(list_tag)
+
+
     def get_page_info_by_title(self, space_key, page_title):
         api_url = f"{self._base_url}/rest/api/content?spaceKey={space_key}&title={page_title.replace(' ', '+')}&expand=body.storage,version"
         headers = {

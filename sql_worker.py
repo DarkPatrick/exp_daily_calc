@@ -225,7 +225,7 @@ class SqlWorker():
 
     def get_exp_daily_custom_funnel_data(self, params: dict = {}):
         custom_funnel_query = self.build_custom_funnel_query(params["dag"], params["platform_suffix"]).format(**params)
-        # print(custom_funnel_query)
+        print(custom_funnel_query)
         query_result = self._mb_client.post("dataset", custom_funnel_query)
         return query_result
 

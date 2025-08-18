@@ -47,12 +47,15 @@ sql_worker: SqlWorker = SqlWorker()
 # exp_results_gen = ExpResultsGenerator(sql_worker, 6320)
 
 
-exp_results_gen = ExpResultsGenerator(sql_worker, 6359)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6359)
 
 # exp_results_gen = ExpResultsGenerator(sql_worker, 4722)
 
 
 # exp_results_gen = ExpResultsGenerator(sql_worker, 5238)
+
+
+exp_results_gen = ExpResultsGenerator(sql_worker, 3781)
 
 
 # exp_results_gen.exp_info
@@ -96,7 +99,11 @@ if audience_dict == {}:
     audience_dict = {'UGT_IOS': {'sample': 0, 'days': 0}, 'UGT_ANDROID': {'sample': 0, 'days': 0}, 'UG_WEB': {'sample': 0, 'days': 0}}
 print(audience_dict)
 # print(audience_dict)
-# print(funnels)
+print(funnels)
+
+solution = confluence.extract_solution_bullets(page_info['current_content'], exp_results_gen.exp_info['id'])
+print(solution)
+
 # import sys
 # sys.exit()
 
@@ -127,19 +134,6 @@ for client in clients_options:
         exp_results[client][segment] = exp_results_gen.get_exp_all_calculations()
 
 
-solution = """
-We'll launch ABC test. The content of the "video ads" will vary in the test variations
-In the test iterations, we show a clip if we receive an "admob_fail" event. We show the clip no more than once every 30 seconds and no more than 5 times a day (showing to 80% of the audience and we know from the previous project, then the first 3 showings are the most effective for conversion)
-(предупреждение) We don't display the new interstitial in offline mode
-We are rolling it out to all users without Pro rights (both new users and former subscribers)
-For the test, we will take the most converting creatives from the paid UA team (list - https://app.milanote.com/1Uz4yo1Ktmndbf/pua-3049-share-creatives-ug?p=kdJPb3KpT0Z)
-We've chosen two formats: playing songs by tabs and by chords
-Keep the sound in the video, but turn it off by default
-A close button ("x") appears after 5 seconds (animation of a circle filling up and then the cross). Ensure that the tap area matches the cross in the current ad interstitials
-Add a "Try for Free" button on bottom of the video. The button is active and visible throughout the entire video.
-When you click on the advertisement, we open the standard pro-paywall. The availability of a trial plan on the paywall is determined by the standard current procedure and may vary depending on the user's past subscriptions
-If the video ends, stop it on the last frame. The user can only exit by clicking the ("x")
-"""
 
 prompt = generate_gpt_prompt(clients_options, config_dict, exp_results, solution)
 gpt_advice = ask_gpt_opinion(prompt)

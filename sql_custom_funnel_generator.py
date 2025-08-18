@@ -35,7 +35,7 @@ class _DAGParser:
 
     def _parse_condition(self) -> str:
         start = self.i
-        while self.i < self.n and self.s[self.i] not in ">,[]":
+        while self.i < self.n and self.s[self.i] not in ">;[]":
             self.i += 1
         return self.s[start:self.i].strip()
 
@@ -60,7 +60,7 @@ class _DAGParser:
                 ends = self._parse_chain(list(sources))
                 end_union.extend(ends)
                 self._skip_ws()
-                if self._peek() == ',':
+                if self._peek() == ';':
                     self.i += 1
                     continue
                 elif self._peek() == ']':
