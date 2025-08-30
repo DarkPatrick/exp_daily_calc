@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import math
 import re
+from requests.structures import CaseInsensitiveDict
 
 from metabase import Mb_Client
 from sql_custom_funnel_generator import generate_clickhouse_sql
@@ -18,7 +19,7 @@ class SqlWorker():
             username=secrets["username"],
             password=secrets["password"]
         )
-        self._current_segment: dict = {}
+        self._current_segment: CaseInsensitiveDict = CaseInsensitiveDict()
         self._funnels: dict = {}
 
     def get_exp_params(self, exp_info: dict, date: str, exp_end_dt: str) -> dict:
@@ -28,14 +29,14 @@ class SqlWorker():
                 'datetime_start': self._current_segment.get("datetime_start", exp_info["date_start"]),
                 'datetime_end': self._current_segment.get("datetime_end", exp_end_dt),
                 "exposure_event": self._current_segment.get("exposure_event", exp_info["experiment_event_start"]),
-                "platform": self._current_segment.get("platform", "all"),
+                "platform": self._current_segment.get("platform", "all").lower(),
                 "include_values": self.generate_sql_list_filter("value", self._current_segment.get("include_values", [])),
                 "exclude_values": self.generate_sql_list_filter("value", self._current_segment.get("exclude_values", []), exclude=True),
-                'pro_rights': self.generate_sql_rights_filter("pro", self._current_segment.get("pro_rights", "Free")),
-                'edu_rights': self.generate_sql_rights_filter("edu", self._current_segment.get("edu_rights", "All")),
-                'sing_rights': self.generate_sql_rights_filter("sing", self._current_segment.get("sing_rights", "All")),
-                'practice_rights': self.generate_sql_rights_filter("practice", self._current_segment.get("practice_rights", "All")),
-                'book_rights': self.generate_sql_rights_filter("book", self._current_segment.get("book_rights", "All")),
+                'pro_rights': self.generate_sql_rights_filter("pro", self._current_segment.get("pro_rights", "all").lower()),
+                'edu_rights': self.generate_sql_rights_filter("edu", self._current_segment.get("edu_rights", "all").lower()),
+                'sing_rights': self.generate_sql_rights_filter("sing", self._current_segment.get("sing_rights", "all").lower()),
+                'practice_rights': self.generate_sql_rights_filter("practice", self._current_segment.get("practice_rights", "all").lower()),
+                'book_rights': self.generate_sql_rights_filter("book", self._current_segment.get("book_rights", "all").lower()),
                 "country": self._current_segment.get("country", "all"),
                 "source": exp_info["calc_source"],
                 "custom_where": self._current_segment.get("custom_where", 1),
@@ -53,17 +54,17 @@ class SqlWorker():
         rights_level_list = ['pro', 'edu', 'sing', 'practice', 'book']
         rights_level = int(math.pow(10, rights_level_list.index(rights_type)))
         rights_dict: dict = {
-            'Empty': f'toUInt32(rights / {rights_level}) % 10 = 0',
-            'Free': f'toUInt32(rights / {rights_level}) % 10 in (0, 4, 5)',
-            'Finite subscription': f'toUInt32(rights / {rights_level}) % 10 in (1, 2)',
-            'Lifetime': f'toUInt32(rights / {rights_level}) % 10 in (3)',
-            'Any paid': f'toUInt32(rights / {rights_level}) % 10 in (2, 3)',
-            'Any subscription': f'toUInt32(rights / {rights_level}) % 10 in (1, 2, 3)',
-            'Trial': f'toUInt32(rights / {rights_level}) % 10 in (1)',
-            'Expired subscription': f'toUInt32(rights / {rights_level}) % 10 in (5)',
-            'Expired trial': f'toUInt32(rights / {rights_level}) % 10 in (4)',
-            'Expired any': f'toUInt32(rights / {rights_level}) % 10 in (4, 5)',
-            'All': f'1'
+            'empty': f'toUInt32(rights / {rights_level}) % 10 = 0',
+            'free': f'toUInt32(rights / {rights_level}) % 10 in (0, 4, 5)',
+            'finite subscription': f'toUInt32(rights / {rights_level}) % 10 in (1, 2)',
+            'lifetime': f'toUInt32(rights / {rights_level}) % 10 in (3)',
+            'any paid': f'toUInt32(rights / {rights_level}) % 10 in (2, 3)',
+            'any subscription': f'toUInt32(rights / {rights_level}) % 10 in (1, 2, 3)',
+            'trial': f'toUInt32(rights / {rights_level}) % 10 in (1)',
+            'expired subscription': f'toUInt32(rights / {rights_level}) % 10 in (5)',
+            'expired trial': f'toUInt32(rights / {rights_level}) % 10 in (4)',
+            'expired any': f'toUInt32(rights / {rights_level}) % 10 in (4, 5)',
+            'all': f'1'
         }
         return rights_dict[rights]
 
@@ -155,6 +156,8 @@ class SqlWorker():
 
 
     def build_retention_query(self, platform_suffix: str):
+        # {self.get_query(f"retention_{platform_suffix}")}
+        # {self.get_query(f"retention_mob_web")}
         query = f"""
             with vars as (
                 {self.get_query("date_variation")}
@@ -170,6 +173,8 @@ class SqlWorker():
         return query
 
     def build_long_tab_view_query(self, platform_suffix: str):
+        # {self.get_query(f"long_tab_view_{platform_suffix}")}
+        # {self.get_query(f"long_tab_view_mob_web")}
         query = f"""
             with vars as (
                 {self.get_query("date_variation")}
@@ -225,7 +230,7 @@ class SqlWorker():
 
     def get_exp_daily_custom_funnel_data(self, params: dict = {}):
         custom_funnel_query = self.build_custom_funnel_query(params["dag"], params["platform_suffix"]).format(**params)
-        print(custom_funnel_query)
+        # print(custom_funnel_query)
         query_result = self._mb_client.post("dataset", custom_funnel_query)
         return query_result
 
@@ -339,7 +344,8 @@ class SqlWorker():
             current_day = exp_start_dt + datetime.timedelta(days=day)
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
             params["dag"] = funnel
-            params["platform_suffix"] = exp_info.get("platform_suffix", "app")
+            # params["platform_suffix"] = exp_info.get("platform_suffix", "app")
+            # print("platform_suffix=", params["platform_suffix"])
             params["table"] = "default.ug_rt_events_app" if params["platform_suffix"] == "app" else "default.ug_rt_events_web"
             # print(self.build_custom_funnel_query(params["dag"], params["platform_suffix"]).format(**params))
             df = self.get_exp_daily_custom_funnel_data(params)

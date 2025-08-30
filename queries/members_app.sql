@@ -6,6 +6,7 @@ select
     --     else a.unified_id
     -- end as unified_id,
     argMinIf(user_id, datetime, user_id > 0) as user_id,
+    argMinIf(payment_account_id, datetime, payment_account_id > 0) as payment_account_id,
     argMinIf(session_id, datetime, session_id > 0) as session_id,
     min(toUnixTimestamp(datetime)) AS exp_start_dt,
     argMin(rights,datetime) AS rights,
@@ -52,10 +53,10 @@ and
     {exclude_values}
 and
     multiIf(
-        '{platform}' = 'Desktop',  platform = 1,
-        '{platform}' = 'Phone', platform = 2, 
-        '{platform}' = 'Tablet', platform = 3, 
-        '{platform}' = 'Mobile', platform > 1, 
+        '{platform}' = 'desktop',  platform = 1,
+        '{platform}' = 'phone', platform = 2, 
+        '{platform}' = 'tablet', platform = 3, 
+        '{platform}' = 'mobile', platform > 1, 
         1
     )
 and

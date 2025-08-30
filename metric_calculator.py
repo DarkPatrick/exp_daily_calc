@@ -26,7 +26,7 @@ def calc_monetization_cumulatives(df):
     df.to_csv('temp_df.csv')
 
     cumsum_columns = [
-        'members', 'subscriber_cnt', 'access_cnt', 'access_instant_cnt',
+        'members', 'install_cnt', 'subscriber_cnt', 'access_cnt', 'access_instant_cnt',
         'access_ex_trial_cnt', 'access_trial_cnt', 'active_trial_cnt', 'trial_subscriber_cnt',
         'charged_trial_cnt', 'active_charged_trial_cnt', 'cancel_trial_cnt', 'trial_buyer_cnt', 'late_charged_cnt',
         'buyer_cnt', 'charge_cnt', 'refund_14d_cnt', 'cancel_14d_cnt', 'cancel_1m_cnt', 'revenue', 'lifetime_revenue',
@@ -38,6 +38,7 @@ def calc_monetization_cumulatives(df):
         df[f'{col}_cum'] = df.groupby('variation')[col].cumsum()
 
     df['accesses_per_subscriber'] = df['access_cnt_cum'] / df['subscriber_cnt_cum']
+    df['member -> install, %'] = df['install_cnt_cum'] / df['members_cum'] * 100
     df['member -> subscriber, %'] = df['subscriber_cnt_cum'] / df['members_cum'] * 100
     df['trial -> cancel, %'] = df['cancel_trial_cnt_cum'] / df['access_trial_cnt_cum'] * 100
     df['trial -> charge, %'] = df['charged_trial_cnt_cum'] / df['access_trial_cnt_cum'] * 100
@@ -90,10 +91,11 @@ def calc_monetization_cumulatives(df):
     df['trial share, %'] = df['access_trial_cnt_cum'] / df['access_cnt_cum'] * 100
 
     final_columns = [
-        'dt', 'variation', 'members_cum', 'subscriber_cnt_cum', 'access_cnt_cum',
+        'dt', 'variation', 'members_cum', 'install_cnt_cum', 'subscriber_cnt_cum', 'access_cnt_cum',
         'access_instant_cnt_cum', 'access_ex_trial_cnt_cum', 'access_trial_cnt_cum',
         'active_trial_cnt_cum', 
         'trial share, %',
+        'member -> install, %',
         'accesses_per_subscriber', 'member -> subscriber, %', 'trial -> cancel, %',
         'trial -> charge, %', 'active trial -> charge, %', 
         'trial subscriber -> buyer, %', 'subscriber -> buyer, %',

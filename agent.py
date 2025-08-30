@@ -73,7 +73,8 @@ def generate_gpt_prompt(clients_options: dict, config_dict: dict, exp_results: l
 
     В Next steps предложи 1-3 конкретных шагов с приоритетами.
     весь текст пиши по-ангийски
-    по возможности в Conclusion и Next steps используй данные из описания эксперимента
+    по возможности в Results, Conclusion и Next steps используй данные из описания эксперимента
+    Например, в Conclusion старайся давать предположения почему произошли те или иные значимые изменения. Если повторяются, то можно не дублировать эти пояснения, а оставлять под одним сегментом. Если не видишь логического обоснования, то лучше не пиши ничего
 
 Описание эксперимента:
 {exp_solution}
@@ -110,7 +111,17 @@ def generate_gpt_prompt(clients_options: dict, config_dict: dict, exp_results: l
             ```csv
             {exp_results[client][segment]['long_tab_view']['cum_metrics'].to_csv()}
             """
-
+        # iterate over dict exp_results[client]['Total']['funnel_data']
+        for funnel_name, funnel_data in exp_results[client]['Total']['funnel_data'].items():
+            prompt += f"""
+            ### table
+            description=experiment funnel data
+            platform={client}
+            segment='Total'
+            funnel_name={funnel_name}
+            ```csv
+            {funnel_data.to_csv()}
+        """
     return prompt
 
 

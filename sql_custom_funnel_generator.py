@@ -3,7 +3,10 @@ from collections import OrderedDict, defaultdict
 
 
 
-def clean_input(s: str) -> str:
+def clean_input(s):
+    """Поддерживает как строку, так и dict {'funnel': '...'}; чистит \\xa0 и лишние пробелы."""
+    if isinstance(s, dict):
+        s = s.get("funnel", "")
     if s is None:
         return ""
     s = s.replace("\xa0", " ")
@@ -11,20 +14,61 @@ def clean_input(s: str) -> str:
         s = s[1:-1]
     return re.sub(r"\s+", " ", s).strip()
 
-def cond_to_alias(cond: str) -> str:
-    m = re.search(r"event\s*=\s*'([^']+)'", cond, flags=re.IGNORECASE)
-    return m.group(1) if m else cond
+def _extract(cond: str, key: str):
+    """Достаёт значение ключа key из условия (строка или число)."""
+    m = re.search(rf"{key}\s*=\s*'([^']+)'", cond, flags=re.IGNORECASE)
+    if m:
+        return m.group(1)
+    m = re.search(rf"{key}\s*=\s*([0-9]+)", cond, flags=re.IGNORECASE)
+    return m.group(1) if m else None
+
+def cond_to_alias(cond: str, used: set) -> str:
+    """
+    Уникальный алиас:
+      Event[/value][/item_id]
+    При повторе полностью идентичного условия добавляется ' / 2', ' / 3', ...
+    """
+    event = _extract(cond, "event") or cond
+    parts = [event]
+    val = _extract(cond, "value")
+    if val:
+        parts.append(val)
+    item_id = _extract(cond, "item_id")
+    if item_id:
+        parts.append(item_id)
+    base = " / ".join(parts)
+    alias = base
+    i = 2
+    while alias in used:
+        alias = f"{base} / {i}"
+        i += 1
+    used.add(alias)
+    return alias
 
 def quote_ident(name: str) -> str:
     return f"`{name.replace('`', '``')}`"
 
+def prefix_entity_fields(cond: str) -> str:
+    """Добавляет префикс 'e.' к известным полям внутри условия."""
+    fields = ["event", "value", "item_id", "source", "sku", "plan", "category"]
+    pattern = r"(?i)(?<![A-Za-z0-9_.])(" + "|".join(fields) + r")\s*="
+    return re.sub(pattern, r"e.\1=", cond)
+
 class _DAGParser:
+    """
+    Парсит строку вида:
+      members > event='A' and value='X' > [ event='B', event='C' > event='D' ] > event='E'
+    Возвращает:
+      nodes: OrderedDict[alias] = cond
+      children: dict[parent_alias] = [child_alias, ...]
+    """
     def __init__(self, s: str):
         self.s = s
         self.i = 0
         self.n = len(s)
-        self.nodes = OrderedDict()           # cond -> alias
-        self.children = defaultdict(list)    # parent_alias -> [child_alias,...]
+        self.nodes = OrderedDict()            # alias -> cond
+        self.children = defaultdict(list)     # alias -> [alias,...]
+        self.used_aliases = set()
 
     def _skip_ws(self):
         while self.i < self.n and self.s[self.i].isspace():
@@ -39,18 +83,22 @@ class _DAGParser:
             self.i += 1
         return self.s[start:self.i].strip()
 
-    def _add_node(self, cond: str, alias: str):
-        if cond not in self.nodes:
-            self.nodes[cond] = alias
+    def _ensure_node(self, cond: str) -> str:
+        alias = cond_to_alias(cond, self.used_aliases)
+        if alias not in self.nodes:
+            self.nodes[alias] = cond
+        return alias
 
     def _add_edge(self, src_alias: str, dst_alias: str):
+        if src_alias == dst_alias:
+            return
         self.children[src_alias].append(dst_alias)
 
     def _parse_term(self, sources):
         self._skip_ws()
         ch = self._peek()
         if ch == '[':
-            self.i += 1
+            self.i += 1  # consume '['
             end_union = []
             while True:
                 self._skip_ws()
@@ -75,11 +123,9 @@ class _DAGParser:
                 return list(sources)
             if cond.strip().lower() == 'members':
                 return list(sources)
-            alias = cond_to_alias(cond)
-            self._add_node(cond, alias)
+            alias = self._ensure_node(cond)
             for src in sources:
-                if src != alias:
-                    self._add_edge(src, alias)
+                self._add_edge(src, alias)
             return [alias]
 
     def _parse_chain(self, sources):
@@ -97,73 +143,64 @@ class _DAGParser:
         self._parse_chain(['members'])
         return self.nodes, self.children
 
-def generate_clickhouse_sql(dag_str: str) -> str:
-    dag_str = clean_input(dag_str)
-    nodes, children = _DAGParser(dag_str).parse()
+def generate_clickhouse_sql(dag_def) -> str:
+    dag_str = clean_input(dag_def)
+    nodes, children = _DAGParser(dag_str).parse()  # nodes: alias->cond
 
-    # порядок (лево->право) обходом от members
+    # DFS порядок без зацикливания
     order = []
+    visited = set()
     def dfs(parent):
         for child in children.get(parent, []):
-            if child not in order:
+            if child not in visited:
+                visited.add(child)
                 order.append(child)
-            dfs(child)
+                dfs(child)
     dfs('members')
 
-    alias_to_cond = {alias: cond for cond, alias in nodes.items()}
-
+    # uniqExactIf-колонки
     uniq_cols = []
     for alias in order:
-        cond = alias_to_cond[alias]
+        cond = nodes[alias]
         uniq_cols.append(f"uniqExactIf(e.unified_id, {cond}) as {quote_ident(alias)}")
     uniq_cols_sql = ",\n        ".join(uniq_cols)
 
+    # OR-условия
     or_lines = []
     for alias in order:
-        cond = alias_to_cond[alias]
-        parts = [p.strip() for p in cond.split('and') if p.strip()]
-        or_lines.append(" and ".join([f"e.{p}" for p in parts]))
+        cond_e = prefix_entity_fields(nodes[alias])
+        or_lines.append(cond_e)
     or_sql = "\n        or ".join(or_lines)
 
+    # parent_of для деноминаторов
+    parent_of = {}
+    for p, kids in children.items():
+        for k in kids:
+            # если у узла несколько родителей (из веток) — берём первого по обходу
+            parent_of.setdefault(k, p)
+
+    # базовые колонки
     select_cols = [
         "m.dt as dt",
         "m.variation as variation",
         "m.members as members",
     ]
 
-    # кто чей родитель
-    parent_of = {}
-    for p, kids in children.items():
-        for k in kids:
-            parent_of[k] = p
-
-    # последний шаг DAG (если есть)
-    last_alias = order[-1] if order else None
-
-    # счётчики и ratio по рёбрам; ratio для последнего шага, если его родитель == members, отложим,
-    # чтобы поставить ЭТОТ ratio последним столбцом
-    deferred_last_ratio = None
-
+    # счётчики и ratio вдоль рёбер
     for alias in order:
         select_cols.append(f"e.{quote_ident(alias)} as {quote_ident(alias)}")
         parent = parent_of.get(alias, 'members')
         denom = "members" if parent == "members" else quote_ident(parent)
-        ratio_sql = f"{quote_ident(alias)} / {denom} * 100 as {quote_ident(f'{parent} -> {alias}, %')}"
-        if last_alias and alias == last_alias and parent == 'members':
-            deferred_last_ratio = ratio_sql  # добавим в самом конце
-        else:
-            select_cols.append(ratio_sql)
+        select_cols.append(
+            f"{quote_ident(alias)} / {denom} * 100 as {quote_ident(f'{parent} -> {alias}, %')}"
+        )
 
-    # Всегда добавляем финальную конверсию members -> last_alias последней колонкой
+    # финальная конверсия members -> последний шаг (последним столбцом)
+    last_alias = order[-1] if order else None
     if last_alias:
-        final_ratio_sql = f"{quote_ident(last_alias)} / members * 100 as {quote_ident(f'members -> {last_alias}, %')}"
-        # если это тот же шаг и мы его отложили — используем отложенный (он эквивалентен)
-        if deferred_last_ratio is not None:
-            # на случай, если хочется дословно 'members -> last' в алиасе, а не '{parent} -> {last}'
-            select_cols.append(final_ratio_sql)
-        else:
-            # parent != members — добавляем дополнительную итоговую конверсию
-            select_cols.append(final_ratio_sql)
+        select_cols.append(
+            f"{quote_ident(last_alias)} / members * 100 as {quote_ident(f'members -> {last_alias}, %')}"
+        )
 
     select_cols_sql = ",\n    ".join(select_cols)
 

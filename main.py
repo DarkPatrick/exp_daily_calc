@@ -13,6 +13,7 @@ import string
 import datetime
 import os
 from tqdm import tqdm
+from requests.structures import CaseInsensitiveDict
 
 from confluence import ConfluenceWorker
 from exp_results_generator import ExpResultsGenerator
@@ -55,7 +56,21 @@ sql_worker: SqlWorker = SqlWorker()
 # exp_results_gen = ExpResultsGenerator(sql_worker, 5238)
 
 
-exp_results_gen = ExpResultsGenerator(sql_worker, 3781)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 3781)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6332)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6326)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6386)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6230)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6377)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6371)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6398)
+
+exp_results_gen = ExpResultsGenerator(sql_worker, 6413)
 
 
 # exp_results_gen.exp_info
@@ -82,9 +97,11 @@ page_info = confluence.get_page_info(url)
 config_dict_raw = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
 config_dict = {}
 funnels = {}
+config_dict_raw = {'Total': {'pro_rights': 'All', 'platform': 'all', 'include_values': ['Audio2Chords Tour Update'], 'funnel_source_include': ['Audio2Chords Tour Update']}}
 if config_dict_raw == {} or config_dict_raw is None:
     config_dict  = {'Total': {'pro_rights': 'All'}}
     # config_dict  = {'Total': {'pro_rights': 'Free', 'Platform': 'Phone'}, 'Tour accesses only': {'pro_rights': 'Free', 'Platform': 'Phone', 'funnel_source_include': ['Tour Install']}}
+    # config_dict  = {'Total': {'pro_rights': 'Free', 'platform': 'Mobile', 'country': 'Asia'}}
 else:
     for segment, config in config_dict_raw.items():
         if 'funnel' not in config_dict_raw[segment]:
@@ -102,6 +119,9 @@ print(audience_dict)
 print(funnels)
 
 solution = confluence.extract_solution_bullets(page_info['current_content'], exp_results_gen.exp_info['id'])
+# solution = """
+# If we enable Simplify feature be default in Asia countries, then Bounce rate metric will descrease, because chords will be easier so more users will be able to play a song thay want.
+# """
 print(solution)
 
 # import sys
@@ -128,14 +148,18 @@ for client in clients_options:
             if params[0] == 'version':
                 exp_results_gen.exp_info['calc_version'] = params[1]
         exp_results_gen.exp_info['segment'] = segment
-        exp_results_gen.db._current_segment = config_dict[segment]
+        exp_results_gen.db._current_segment = CaseInsensitiveDict(config_dict[segment])
         exp_results_gen.db._funnels = funnels
 
         exp_results[client][segment] = exp_results_gen.get_exp_all_calculations()
 
 
 
+# import sys
+# sys.exit()
+
 prompt = generate_gpt_prompt(clients_options, config_dict, exp_results, solution)
+# print(prompt)
 gpt_advice = ask_gpt_opinion(prompt)
 # print(gpt_advice)
 

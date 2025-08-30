@@ -14,10 +14,10 @@ with dau as (
     )
     and
         multiIf(
-            '{platform}' = 'Desktop',  platform = 1,
-            '{platform}' = 'Phone', platform = 2, 
-            '{platform}' = 'Tablet', platform = 3, 
-            '{platform}' = 'Mobile', platform > 1, 
+            '{platform}' = 'desktop',  platform = 1,
+            '{platform}' = 'phone', platform = 2, 
+            '{platform}' = 'tablet', platform = 3, 
+            '{platform}' = 'mobile', platform > 1, 
             1
         )
     and
@@ -79,10 +79,10 @@ with dau as (
         {exclude_values}
     and
         multiIf(
-            '{platform}' = 'Desktop',  platform = 1,
-            '{platform}' = 'Phone', platform = 2, 
-            '{platform}' = 'Tablet', platform = 3, 
-            '{platform}' = 'Mobile', platform > 1, 
+            '{platform}' = 'desktop',  platform = 1,
+            '{platform}' = 'phone', platform = 2, 
+            '{platform}' = 'tablet', platform = 3, 
+            '{platform}' = 'mobile', platform > 1, 
             1
         )
     and

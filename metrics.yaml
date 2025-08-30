@@ -253,7 +253,8 @@ recurrent_charge_cnt, %:
 STATS:
   members: members
   sessions: sessions
-  installs: installs
+  install_cnt: installs
+  # installs: installs
   app_open_cnt: app opens
   subscriber_cnt: subscribers
   access_cnt: accesses

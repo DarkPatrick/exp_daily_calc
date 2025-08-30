@@ -33,7 +33,7 @@ class Mb_Client(BaseModel):
         setattr(self, "session_header", {"X-Metabase-Session": session_id})
 
 
-    def _extract_mb_error(resp: requests.Response) -> str:
+    def _extract_mb_error(self, resp: requests.Response) -> str:
         try:
             js = resp.json()
         except Exception:
@@ -84,6 +84,7 @@ class Mb_Client(BaseModel):
                     if 'data' not in json_res or 'cols' not in json_res['data'] or json_res['data']['cols'] == [] or json_res['data']['cols'] is None:
                         # print(f"Unexpected response structure: {json_res}")
                         print(f"erorr, reloading")
+                        time.sleep(3)
                         continue
                 except ValueError as e:
                     print(f"Invalid JSON in response: {post.text[:1000]}")
