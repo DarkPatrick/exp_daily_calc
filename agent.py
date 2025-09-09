@@ -98,19 +98,21 @@ def generate_gpt_prompt(clients_options: dict, config_dict: dict, exp_results: l
             segment={segment}
             ```csv
             {exp_results[client][segment]['monetization']['cum_metrics'].to_csv()}
-            ### table
+            """
+        prompt += f"""
+            ### table### table
             description=retention metics
             platform={client}
-            segment={segment}
+            segment=Total
             ```csv
-            {exp_results[client][segment]['retention']['cum_metrics'].to_csv()}
+            {exp_results[client]['Total']['retention']['cum_metrics'].to_csv()}
             ### table
             description=tab view metics
             platform={client}
-            segment={segment}
+            segment=Total
             ```csv
-            {exp_results[client][segment]['long_tab_view']['cum_metrics'].to_csv()}
-            """
+            {exp_results[client]['Total']['long_tab_view']['cum_metrics'].to_csv()}
+        """
         # iterate over dict exp_results[client]['Total']['funnel_data']
         for funnel_name, funnel_data in exp_results[client]['Total']['funnel_data'].items():
             prompt += f"""

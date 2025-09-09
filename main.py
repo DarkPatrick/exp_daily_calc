@@ -5,6 +5,7 @@
 # воронка регвола
 # лтв 2 года
 # design check: надо поделить на количество веток
+import sys
 import pandas as pd
 from sql_worker import SqlWorker
 import re
@@ -70,7 +71,18 @@ sql_worker: SqlWorker = SqlWorker()
 # exp_results_gen = ExpResultsGenerator(sql_worker, 6371)
 # exp_results_gen = ExpResultsGenerator(sql_worker, 6398)
 
-exp_results_gen = ExpResultsGenerator(sql_worker, 6413)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6413)
+
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6059)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6287)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6428)
+
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6344)
+
+exp_results_gen = ExpResultsGenerator(sql_worker, 6440)
 
 
 # exp_results_gen.exp_info
@@ -97,7 +109,7 @@ page_info = confluence.get_page_info(url)
 config_dict_raw = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
 config_dict = {}
 funnels = {}
-config_dict_raw = {'Total': {'pro_rights': 'All', 'platform': 'all', 'include_values': ['Audio2Chords Tour Update'], 'funnel_source_include': ['Audio2Chords Tour Update']}}
+# config_dict_raw = {'Total': {'pro_rights': 'All', 'platform': 'all', 'include_values': ['Audio2Chords Tour Update'], 'funnel_source_include': ['Audio2Chords Tour Update']}}
 if config_dict_raw == {} or config_dict_raw is None:
     config_dict  = {'Total': {'pro_rights': 'All'}}
     # config_dict  = {'Total': {'pro_rights': 'Free', 'Platform': 'Phone'}, 'Tour accesses only': {'pro_rights': 'Free', 'Platform': 'Phone', 'funnel_source_include': ['Tour Install']}}
@@ -131,6 +143,10 @@ page_id = page_info['page_id']
 
 
 clients_options = eval(exp_results_gen.exp_info['clients_options'])
+print(clients_options)
+
+# sys.exit()
+
 exp_results = {}
 for client in clients_options:
     # if client == 'UGT_ANDROID':
@@ -145,17 +161,21 @@ for client in clients_options:
         for params in clients_options[client]:
             if params[0] == 'platform':
                 exp_results_gen.exp_info['calc_platforms'] = params[1]
+                # print(exp_results_gen.exp_info['calc_platforms'])
+                # sys.exit()
             if params[0] == 'version':
                 exp_results_gen.exp_info['calc_version'] = params[1]
         exp_results_gen.exp_info['segment'] = segment
         exp_results_gen.db._current_segment = CaseInsensitiveDict(config_dict[segment])
         exp_results_gen.db._funnels = funnels
+        if exp_results_gen.exp_info['calc_source'].lower() in ['ug_ios', 'ugt_ios', 'ug_android', 'ugt_android']:
+            exp_results_gen.db._funnels['Tour Funnel'] = "members > event = 'Tour Start' > event = 'Tour General Goals View' > event = 'Banner Tour View' > event = 'Purchase Process Finish' and value = 'Tour Install' > event = 'Tour End'"
+        if exp_results_gen.exp_info['calc_source'].lower() in ['ug_web']:
+            exp_results_gen.db._funnels['Laning Funnel'] = "members > event = 'Landing Upgrade Open' > event = 'Landing Plans View' > event = 'Landing Checkout View' > event = 'Landing Purchase Click' > event = 'PURCHASE_SUCCESS'"
 
         exp_results[client][segment] = exp_results_gen.get_exp_all_calculations()
 
 
-
-# import sys
 # sys.exit()
 
 prompt = generate_gpt_prompt(clients_options, config_dict, exp_results, solution)

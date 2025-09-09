@@ -55,6 +55,7 @@ from (
         --         or s.event = 'Charged' and d.notification_type in ('INITIAL_BUY', 'INTERACTIVE_RENEWAL', 'SUBSCRIBED:INITIAL_BUY', 'SUBSCRIBED:RESUBSCRIBE', 'SUBSCRIBED')
         -- ) as funnel_source,
         argMinIf(s.funnel_start_action, s.datetime, s.event = 'Subscribed') as funnel_start_action,
+        argMinIf(payment_method, datetime, event = 'Subscribed') as payment_method,
         argMinIf(s.duration_count, s.datetime, s.event = 'Subscribed') as duration_count,
         argMinIf(s.base_price, s.datetime, s.event = 'Subscribed') as base_price,
         minIf(toUnixTimestamp(s.datetime), s.event = 'Subscribed') as subscribed_dt,

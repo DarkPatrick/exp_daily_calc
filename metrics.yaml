@@ -263,6 +263,7 @@ STATS:
   access_ex_trial_cnt: ex trials
   charged_trial_cnt: charged trials
   trial -> charge, %: trial -> charge, %
+  access_otp_cnt: otp accesses
   buyer_cnt: buyers
   subscriber -> buyer, %: subscriber -> buyer, %
   charge_cnt: charges

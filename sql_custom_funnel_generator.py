@@ -266,5 +266,5 @@ and
 # --- пример использования ---
 if __name__ == "__main__":
     # dag = "members >\xa0event='Pre-paywall Adfree View' and value='Interstitial' > [event='Pre-paywall Adfree Close' and value='Interstitial', event='Pre-paywall Compare View' and value='Interstitial' > event='Banner Upgrade View' and value='Interstitial' > event='Banner Purchase Click' and value='Interstitial' > event='Purchase Process Finish' and value='Interstitial']"
-    dag = "members > event='Tour View' > event='Tour Instrument View' > event='Banner Tour View' > event = 'Purchase Process Finish' and vale='Tour Install'"
+    dag = "members > event='Tour View' > event='Tour Instrument View' > event='Banner Tour View' > event = 'Purchase Process Finish' and value='Tour Install'"
     print(generate_clickhouse_sql(dag))

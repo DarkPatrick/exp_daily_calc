@@ -284,6 +284,9 @@ class SqlWorker():
             current_day = exp_start_dt + datetime.timedelta(days=day)
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
             params["members"] = "members"
+
+            if exp_info["calc_source"].lower() == "ug_web" and (2 in exp_info.get("calc_platforms", [1]) or 3 in exp_info.get("calc_platforms", [1])):
+                params["platform_suffix"] = "mob_web"
             df = self.get_exp_daily_retention_data(params)
             print("DAY", day)
             print(df)
@@ -304,6 +307,8 @@ class SqlWorker():
             current_day = exp_start_dt + datetime.timedelta(days=day)
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
             params["members"] = "members"
+            if exp_info["calc_source"].lower() == "ug_web" and (2 in exp_info.get("calc_platforms", [1]) or 3 in exp_info.get("calc_platforms", [1])):
+                params["platform_suffix"] = "mob_web"
             df = self.get_exp_daily_long_tab_view_data(params)
             print("DAY", day)
             print(df)

@@ -28,7 +28,8 @@ def calc_monetization_cumulatives(df):
     cumsum_columns = [
         'members', 'install_cnt', 'subscriber_cnt', 'access_cnt', 'access_instant_cnt',
         'access_ex_trial_cnt', 'access_trial_cnt', 'active_trial_cnt', 'trial_subscriber_cnt',
-        'charged_trial_cnt', 'active_charged_trial_cnt', 'cancel_trial_cnt', 'trial_buyer_cnt', 'late_charged_cnt',
+        'charged_trial_cnt', 'active_charged_trial_cnt', 
+        'access_otp_cnt', 'cancel_trial_cnt', 'trial_buyer_cnt', 'late_charged_cnt',
         'buyer_cnt', 'charge_cnt', 'refund_14d_cnt', 'cancel_14d_cnt', 'cancel_1m_cnt', 'revenue', 'lifetime_revenue',
         'recurrent_charge_cnt', 'recurrent_revenue', 'trial_revenue', 'active_trial_revenue',
         'upgrade_cnt', 'upgrade_revenue'
@@ -101,7 +102,8 @@ def calc_monetization_cumulatives(df):
         'trial subscriber -> buyer, %', 'subscriber -> buyer, %',
         'member -> buyer, %', 'subscription -> charge, %', 'charge -> 14d cancel, %',
         'charge -> 14d refund, %',
-        'charged_trial_cnt_cum', 'active_charged_trial_cnt_cum',  'trial_subscriber_cnt_cum', 'cancel_trial_cnt_cum',
+        'charged_trial_cnt_cum', 'active_charged_trial_cnt_cum', 'access_otp_cnt_cum', 
+        'trial_subscriber_cnt_cum', 'cancel_trial_cnt_cum',
         'charge_cnt_cum', 'refund_14d_cnt_cum', 'buyer_cnt_cum', 'cancel_14d_cnt_cum', 'cancel_1m_cnt_cum', 'revenue_cum', 'lifetime_revenue_cum',
         'charge -> 1m cancel, %', 'arppu', 'aov', 'exp_arpu', 'lifetime_arpu', 'exp_trial_arpu', 'exp_instant_arpu',
         # 'aov_var', 'arppu_var', 
