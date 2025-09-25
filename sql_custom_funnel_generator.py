@@ -235,9 +235,9 @@ left join (
     on
         e.unified_id = m.unified_id
     where
-        e.date between toDate({{datetime_start}}) and '{{date}}'
+        e.date between toDate({{datetime_start}}, 'UTC') and toDate({{datetime_end}}, 'UTC')
     and
-        e.datetime between toDateTime({{datetime_start}}) and toDateTime({{datetime_end}})
+        e.datetime between toDateTime(m.exp_start_dt, 'UTC') and toDateTime({{datetime_end}}, 'UTC')
     and
         has(e.`experiments.id`, {{exp_id}})
     and

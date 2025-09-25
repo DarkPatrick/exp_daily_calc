@@ -103,9 +103,9 @@
             <td colspan="{{branches|length }}" style="text-align:right">
             {% set ab_ok = true %}
             {% for br in branches[1:] %}
-                {% set diff = (platform.experiment.samples[br] - platform.experiment.samples[branches[0]]) 
+                {% set diff = (platform.experiment.samples[br] - platform.experiment.samples[branches[0]]) * 100
                             / platform.experiment.samples[branches[0]] %}
-                {% if diff > 0.05 or diff < -0.05 %}
+                {% if diff > 5 or diff < -5 %}
                 {% set ab_ok = false %}
                 {% endif %}
             {% endfor %}

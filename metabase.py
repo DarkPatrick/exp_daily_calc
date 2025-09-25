@@ -82,7 +82,7 @@ class Mb_Client(BaseModel):
                     json_res = post.json()
                     # if there are no json_res['data']['cols'] print json_res
                     if 'data' not in json_res or 'cols' not in json_res['data'] or json_res['data']['cols'] == [] or json_res['data']['cols'] is None:
-                        # print(f"Unexpected response structure: {json_res}")
+                        print(f"Unexpected response structure: {json_res}")
                         print(f"erorr, reloading")
                         time.sleep(3)
                         continue

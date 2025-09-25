@@ -17,6 +17,8 @@ select
         else 1
     end
     , all_charges_arr_uniq)) as lifetime_revenue
+    -- minIf(charge_dt) over(partition by unified_id) as unified_id_charge_dy,
+    -- minIf(charge_dt) over(partition by payment_account_id) as payment_account_id_charge_dy
 from (
     select
         s.subscription_id as subscription_id,
@@ -88,8 +90,8 @@ from (
     -- on
     --     n.notification_type_id = d.id
     where
-    --     s.date >= '{date}'
-    -- and
+        s.date >= '{date}'
+    and
         s.subscription_id != ''
     and
         s.product_id != ''

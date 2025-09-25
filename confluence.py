@@ -121,18 +121,29 @@ class ConfluenceWorker():
         for tbl in soup.find_all('table'):
             # print(tbl)
             tbody = tbl.find('tbody')
+            thead = tbl.find('thead')
             if not tbody:
                 continue
-            rows = tbody.find_all('tr')
-            if not rows:
+            rows_body = tbody.find_all('tr')
+            rows_head = None
+            if thead:
+                rows_head = thead.find_all('tr')
+            if not rows_body:
                 continue
             # первая строка, первый столбец может быть <th> или <td>
-            first_cell = rows[0].find(['th', 'td'])
-            # print("CELL=", first_cell.get_text(strip=True))
-            if first_cell and first_cell.get_text(strip=True).lower() == target_header:
+            first_cell_body = rows_body[0].find(['th', 'td'])
+            # print("CELL=", first_cell_body.get_text(strip=True))
+            
+            first_cell_head = None
+            if rows_head:
+                first_cell_head = rows_head[0].find(['th', 'td'])
+                # print("CELL HEAD=", first_cell_head.get_text(strip=True))
+            
+            if first_cell_body and first_cell_body.get_text(strip=True).lower() == target_header or first_cell_head and first_cell_head.get_text(strip=True).lower() == target_header:
                 table = tbl
                 break
 
+        # print("HERE_0")
         if table is None:
             # raise ValueError(f"Таблица с заголовком '{target_header}' не найдена")
             return {}
@@ -150,7 +161,9 @@ class ConfluenceWorker():
         sample_row   = next((r for r in reversed(rows) if first_text(r) == "Sample"), None)
         days_row     = next((r for r in reversed(rows) if first_text(r) == "Days"), None)
 
+        # print("HERE_1")
         if not platform_row or not sample_row or not days_row:
+            print("Не найдены строки Platform, Sample или Days в таблице")
             # raise ValueError("Не найдены строки Platform, Sample или Days в таблице")
             return {}
 
@@ -163,7 +176,10 @@ class ConfluenceWorker():
         platforms = [c.get_text(strip=True) for c in plat_cells[1:]]
         samples   = [c.get_text(strip=True) for c in sample_cells[1:]]
         days      = [c.get_text(strip=True) for c in days_cells[1:]]
+        
+        # print(platforms, samples, days)
 
+        # print("HERE_2")
         if not (len(platforms) == len(samples) == len(days)):
             # raise ValueError("Число платформ не совпадает с числом значений Sample/Days")
             return {}

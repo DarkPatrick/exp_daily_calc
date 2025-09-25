@@ -193,6 +193,9 @@ def calc_cum_mean_variance(df, mean_col, var_col, members_col):
                 # print("M2_total=", M2_total, "M2_2=", M2_2, "delta=", delta, "n_total=", n_total, "n2=", n2, "n_combined=", n_combined)
                 M2_total = M2_total + M2_2 + delta**2 * n_total * n2 / n_combined
                 n_total = n_combined
+                # n_total = 10, n2=3, M2_2=0, delta=14.5, n_combined=13, mean_total=11,1538461538
+                # M2_total = 
+                
 
             # print("mean2=",mean2, "M2_2=", M2_2, "M2_total=", M2_total, "n_total=", n_total)
             var_sample = M2_total / (n_total - 1) if n_total > 1 else float('nan')

@@ -22,6 +22,10 @@ class SqlWorker():
         self._current_segment: CaseInsensitiveDict = CaseInsensitiveDict()
         self._funnels: dict = {}
 
+
+    def get_exps_to_calc(self) -> pd.DataFrame:
+        pass
+
     def get_exp_params(self, exp_info: dict, date: str, exp_end_dt: str) -> dict:
         return dict({
                 "exp_id": exp_info["id"],

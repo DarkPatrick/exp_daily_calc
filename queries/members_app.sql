@@ -42,6 +42,8 @@ and
 and
     has(experiments.id, {exp_id})
 and
+    variation > 0
+and
     unified_id > 0
 and (
     '{exposure_event}' = 'App Experiment Start' and event = 'App Experiment Start' and item_id = {exp_id}

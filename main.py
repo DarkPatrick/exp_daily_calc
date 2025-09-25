@@ -5,6 +5,8 @@
 # воронка регвола
 # лтв 2 года
 # design check: надо поделить на количество веток
+# лепестковая диаграмма: "access, %", "charge, %", "100 - 14d churn, %", "arpu", "14d retention, %", "Tab View 60s, %"
+# конверсия триала в любую оплату
 import sys
 import pandas as pd
 from sql_worker import SqlWorker
@@ -40,49 +42,14 @@ sql_worker: SqlWorker = SqlWorker()
 # import sys
 # sys.exit()
 
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6335)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6374)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6320)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6359)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 4722)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5238)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 3781)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6332)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6326)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6386)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6230)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6377)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6371)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6398)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6413)
-
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6059)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6287)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6428)
-
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6344)
-
-exp_results_gen = ExpResultsGenerator(sql_worker, 6440)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6527)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6530)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6104)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6458)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 5634)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6455)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6341)
+exp_results_gen = ExpResultsGenerator(sql_worker, 6431)
 
 
 # exp_results_gen.exp_info
@@ -171,7 +138,7 @@ for client in clients_options:
         if exp_results_gen.exp_info['calc_source'].lower() in ['ug_ios', 'ugt_ios', 'ug_android', 'ugt_android']:
             exp_results_gen.db._funnels['Tour Funnel'] = "members > event = 'Tour Start' > event = 'Tour General Goals View' > event = 'Banner Tour View' > event = 'Purchase Process Finish' and value = 'Tour Install' > event = 'Tour End'"
         if exp_results_gen.exp_info['calc_source'].lower() in ['ug_web']:
-            exp_results_gen.db._funnels['Laning Funnel'] = "members > event = 'Landing Upgrade Open' > event = 'Landing Plans View' > event = 'Landing Checkout View' > event = 'Landing Purchase Click' > event = 'PURCHASE_SUCCESS'"
+            exp_results_gen.db._funnels['Landing Funnel'] = "members > event = 'Landing Upgrade Open' > event = 'Landing Plans View' > event = 'Landing Checkout View' > event = 'Landing Purchase Click' > event = 'PURCHASE_SUCCESS'"
 
         exp_results[client][segment] = exp_results_gen.get_exp_all_calculations()
 
@@ -193,6 +160,7 @@ full_html_content += html_generator.generate_exp_results_header(exp_results_gen.
 full_html_content += html_generator.generate_html_header_table(exp_results, audience_dict)
 # full_html_content += html_generator.generate_decision_section()
 # print(gpt_advice_to_confluence_html(gpt_advice))
+
 full_html_content += gpt_advice_to_confluence_html(gpt_advice)
 
 full_html_content += html_generator.generate_forecast_section(exp_results_gen.exp_info, exp_results)
