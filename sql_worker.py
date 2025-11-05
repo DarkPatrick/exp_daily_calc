@@ -191,8 +191,9 @@ class SqlWorker():
         return query
 
 
-    def build_dau_query(self):
-        query = self.get_query("dau")
+    def build_dau_query(self, platform_suffix: str):
+        query = self.get_query(f"dau_{platform_suffix}")
+        # print(query)
         return query
 
 
@@ -213,6 +214,7 @@ class SqlWorker():
 
     def get_exp_daily_monetization_data(self, params: dict = {}):
         monetization_query = self.build_monetization_query(params["platform_suffix"], params["ex_subs_filter"]).format(**params)
+        print(params["platform_suffix"])
         # print(monetization_query)
         query_result = self._mb_client.post("dataset", monetization_query)
         return query_result
@@ -252,6 +254,8 @@ class SqlWorker():
             current_day = exp_start_dt + datetime.timedelta(days=day)
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
             params["ex_subs_filter"] = ""
+            if exp_info["calc_source"].lower() == "ug_web" and (2 in exp_info.get("calc_platforms", [1]) or 3 in exp_info.get("calc_platforms", [1])):
+                params["platform_suffix"] = "mob_web"
             # params["ex_subs_filter"] = """
             # s.sub_dt > toDateTime(0)
             # and s.can_dt > s.sub_dt
@@ -333,7 +337,7 @@ class SqlWorker():
             current_day = exp_start_dt + datetime.timedelta(days=day)
             params = self.get_exp_params(exp_info, current_day.strftime("%Y-%m-%d"), exp_end_dt_param)
             # print(self.build_dau_query().format(**params))
-            df = self._mb_client.post("dataset", self.build_dau_query().format(**params))
+            df = self._mb_client.post("dataset", self.build_dau_query(params["platform_suffix"]).format(**params))
             print("DAY", day)
             print(df)
             full_df = pd.concat([full_df, df], ignore_index=True)
@@ -397,3 +401,11 @@ class SqlWorker():
 
         experiments_df = pd.DataFrame(experiments_dict)
         return experiments_df
+
+
+
+# def test(d: dict = {}):
+#     print(d)
+
+# test({'a': 1, 'b': 2})
+# test()

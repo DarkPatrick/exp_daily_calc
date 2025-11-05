@@ -51,10 +51,15 @@ def calc_monetization_cumulatives(df):
     df['charge -> 14d cancel, %'] = df['cancel_14d_cnt_cum'] / df['charge_cnt_cum'] * 100
     df['charge -> 14d refund, %'] = df['refund_14d_cnt_cum'] / df['charge_cnt_cum'] * 100
     df['charge -> 1m cancel, %'] = df['cancel_1m_cnt_cum'] / df['charge_cnt_cum'] * 100
-    df['arppu'] = df['revenue_cum'] / df['buyer_cnt_cum']
-    df['aov'] = df['revenue_cum'] / df['charge_cnt_cum']
-    df['exp_arpu'] = df['revenue_cum'] / df['members_cum']
-    df['lifetime_arpu'] = df['lifetime_revenue_cum'] / df['members_cum']
+    # safe division for arppu, aov, exp_arpu, lifetime_arpu
+    df['arppu'] = np.where(df['buyer_cnt_cum'] == 0, 0, df['revenue_cum'] / df['buyer_cnt_cum'])
+    df['aov'] = np.where(df['charge_cnt_cum'] == 0, 0, df['revenue_cum'] / df['charge_cnt_cum'])
+    df['exp_arpu'] = np.where(df['members_cum'] == 0, 0, df['revenue_cum'] / df['members_cum'])
+    df['lifetime_arpu'] = np.where(df['members_cum'] == 0, 0, df['lifetime_revenue_cum'] / df['members_cum'])
+    # df['arppu'] = df['revenue_cum'] / df['buyer_cnt_cum']
+    # df['aov'] = df['revenue_cum'] / df['charge_cnt_cum']
+    # df['exp_arpu'] = df['revenue_cum'] / df['members_cum']
+    # df['lifetime_arpu'] = df['lifetime_revenue_cum'] / df['members_cum']
     df['exp_trial_arpu'] = df['trial_revenue_cum'] / df['members_cum']
     df['exp_instant_arpu'] = (df['revenue_cum'] - df['trial_revenue_cum']) / df['members_cum']
 

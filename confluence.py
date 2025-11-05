@@ -1,4 +1,5 @@
 from urllib.parse import urlparse, parse_qs
+from wsgiref import headers
 from dotenv import dotenv_values
 import requests
 import re
@@ -163,6 +164,7 @@ class ConfluenceWorker():
 
         # print("HERE_1")
         if not platform_row or not sample_row or not days_row:
+            print(platform_row, sample_row, days_row)
             print("Не найдены строки Platform, Sample или Days в таблице")
             # raise ValueError("Не найдены строки Platform, Sample или Days в таблице")
             return {}
@@ -425,7 +427,8 @@ class ConfluenceWorker():
         # new_version = info['page_version'] + 1
         updated_content = {
             'version': {
-                'number': info['page_version'] + 1
+                'number': info['page_version'] + 1,
+                'minorEdit': 'true'
             },
             'title': info['page_title'],
             'type': 'page',
@@ -439,16 +442,26 @@ class ConfluenceWorker():
         result = self.upload_data(info['page_url'], updated_content)
         return None
 
-    def upload_image(self, file_path, file_name, page_id):
+    def upload_image(self, file_path, file_name, page_id, url):
         with open(file_path, 'rb') as file:
             file_content = file.read()
         # encoded_content = base64.b64encode(file_content).decode('utf-8')
         upload_url = f'{self._base_url}/rest/api/content/{page_id}/child/attachment'
+        # data = {'minorEdit': 'true', 'comment': 'insert metrics images'}
         # print(upload_url)
         headers = {
             'Authorization': f'Bearer {self._api_token}',
             'X-Atlassian-Token': 'no-check'
         }
+        info = self.get_page_info(url)
+        content = {
+            'version': {
+                'number': info['page_version'] + 1,
+                'minorEdit': 'true',
+                "message": f"img {file_path} load"
+            }
+        }
+        # response = requests.post(upload_url, headers=headers, files={'file': (file_name, file_content, "application/octet-stream")}, data=json.dumps(content))
         response = requests.post(upload_url, headers=headers, files={'file': (file_name, file_content, "application/octet-stream")})
         if response.status_code == 200:
             print('Image uploaded successfully')
@@ -457,6 +470,51 @@ class ConfluenceWorker():
             print(f'Failed to upload image. Status code: {response.status_code}')
             print(response.text)
         return None
+
+
+    def upload_or_update_attachment(
+        self,
+        page_id: str,
+        file_path: str,
+        file_name: str = None,
+        minor_edit: bool = True,
+    ) -> dict:
+        """
+        Создаёт вложение или загружает новую версию существующего.
+        Возвращает JSON объекта вложения (attachment).
+        """
+        if file_name is None:
+            # берём имя из пути
+            import os
+            file_name = os.path.basename(file_path)
+
+        # query-параметры
+        q = {}
+        if minor_edit:
+            q["minorEdit"] = "true"
+        q["comment"] = f"img {file_path} load"
+
+        with open(file_path, "rb") as f:
+            files = {"file": (file_name, f, "application/octet-stream")}
+
+            # Создание нового вложения
+            url = f"{self._base_url}/rest/api/content/{page_id}/child/attachment"
+            headers = {
+                'Authorization': f'Bearer {self._api_token}',
+                'X-Atlassian-Token': 'no-check'
+            }
+            resp = requests.post(url, headers=headers, params=q, files=files)
+
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(f"Attachment upload failed: {resp.status_code} {resp.text}")
+
+        data = resp.json()
+        # У create возвращается {"results":[{...attachment...}], ...}
+        # У update возвращается сам объект вложения
+        if "results" in data:
+            return data["results"][0]
+        return data
+
 
     def generate_image_markup(self, image_file_name, width=250, height=250):
         image_markup = f'<ac:image ac:width="{width}" ac:height="{height}"><ri:attachment ri:filename="{image_file_name}" ri:version-at-save="1" /></ac:image>'

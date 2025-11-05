@@ -28,7 +28,9 @@ class HTMLGenerator:
             return f"{number:.2f}"
 
     def generate_image_markup(self, image_file_name, width=250, height=250):
-            image_markup = f'<ac:image ac:width="{width}" ac:height="{height}"><ri:attachment ri:filename="{image_file_name}" ri:version-at-save="1" /></ac:image>'
+            # image_markup = f'<ac:image ac:width="{width}" ac:height="{height}"><ri:attachment ri:filename="{image_file_name}" ri:version-at-save="1"> <ri:page ri:content-id="731487347" /> </ri:attachment> </ac:image>'
+            image_markup = f'<ac:image ac:width="{width}" ac:height="{height}"><ri:attachment ri:filename="{image_file_name}"> <ri:page ri:space-key="CRO" ri:content-title="[DOCS] experiments images dump" /> </ri:attachment> </ac:image>'
+            # image_markup = f'<ac:image ac:width="{width}" ac:height="{height}"> <ri:url ri:value="/download/attachments/731487347/{image_file_name}" /> </ac:image>'
             return image_markup
 
     def generate_htm_dict(self, df: pd.DataFrame, id: int, template_name: str, calc_session: str) -> Dict:

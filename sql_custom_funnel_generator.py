@@ -57,7 +57,7 @@ def prefix_entity_fields(cond: str) -> str:
 class _DAGParser:
     """
     Парсит строку вида:
-      members > event='A' and value='X' > [ event='B', event='C' > event='D' ] > event='E'
+      members > event='A' and value='X' > [ event='B'; event='C' > event='D' ] > event='E'
     Возвращает:
       nodes: OrderedDict[alias] = cond
       children: dict[parent_alias] = [child_alias, ...]
@@ -79,7 +79,7 @@ class _DAGParser:
 
     def _parse_condition(self) -> str:
         start = self.i
-        while self.i < self.n and self.s[self.i] not in ">;[]":
+        while self.i < self.n and self.s[self.i] not in ">;":
             self.i += 1
         return self.s[start:self.i].strip()
 
@@ -266,5 +266,6 @@ and
 # --- пример использования ---
 if __name__ == "__main__":
     # dag = "members >\xa0event='Pre-paywall Adfree View' and value='Interstitial' > [event='Pre-paywall Adfree Close' and value='Interstitial', event='Pre-paywall Compare View' and value='Interstitial' > event='Banner Upgrade View' and value='Interstitial' > event='Banner Purchase Click' and value='Interstitial' > event='Purchase Process Finish' and value='Interstitial']"
-    dag = "members > event='Tour View' > event='Tour Instrument View' > event='Banner Tour View' > event = 'Purchase Process Finish' and value='Tour Install'"
+    # dag = "members > event='Tour View' > event='Tour Instrument View' > event='Banner Tour View' > event = 'Purchase Process Finish' and value='Tour Install'"
+    dag = "members > event='Ambulance Gift View' > event='Ambulance Gift Click' > event='Banner Purchase Click' and params.value[indexOf(params.key, 'is_ambulance')] = 1 > event='Purchase Process Finish' and params.value[indexOf(params.key, 'is_ambulance')] = 1"
     print(generate_clickhouse_sql(dag))

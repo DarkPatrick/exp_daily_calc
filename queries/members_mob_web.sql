@@ -8,7 +8,7 @@ select
     argMinIf(country, datetime, event != 'App Install') as country,
     argMinIf(source, datetime, event != 'App Install') as source,
     argMinIf(multiIf(os in ('ios', 'os x'), 'ios', os), datetime, event != 'App Install') as os,
-    argMinIf(item_id, datetime, event = 'App Install') as payment_account_id
+    argMaxIf(item_id, datetime, event = 'App Install') as payment_account_id
 from
     default.ug_rt_events_web
 where

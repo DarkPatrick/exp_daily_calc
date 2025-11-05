@@ -60,6 +60,7 @@ from (
         argMinIf(payment_method, datetime, event = 'Subscribed') as payment_method,
         argMinIf(s.duration_count, s.datetime, s.event = 'Subscribed') as duration_count,
         argMinIf(s.base_price, s.datetime, s.event = 'Subscribed') as base_price,
+        argMinIf(s.content_id, s.datetime, s.event = 'Subscribed') as content_id,
         minIf(toUnixTimestamp(s.datetime), s.event = 'Subscribed') as subscribed_dt,
         -- minIf(
         --     toUnixTimestamp(s.datetime), 
@@ -70,10 +71,34 @@ from (
         minIf(toUnixTimestamp(s.datetime), s.event = 'Canceled') as cancel_dt,
         minIf(toUnixTimestamp(s.datetime), s.event = 'Refunded') as refund_dt,
         minIf(toUnixTimestamp(s.datetime), s.event in ('Upgrade', 'Crossgrade')) as upgrade_dt,
-        argMinIf(s.usd_price, s.datetime, s.event = 'Charged') as revenue_gross,
-        argMinIf(s.usd_price, s.datetime, s.event = 'Refunded') as refund_revenue_gross,
+        argMinIf(
+            -- s.usd_price, 
+            case
+                when s.product_id in ('com.ultimateguitar.tabs.plus.intro.1year', 'com.ultimateguitar.ugt.plus.intro.1year2') then s.usd_price * 19.99/39.99
+                else s.usd_price
+            end,
+            s.datetime, s.event = 'Charged'
+        ) as revenue_gross,
+        argMinIf(
+            -- s.usd_price,
+            case
+                when s.product_id in ('com.ultimateguitar.tabs.plus.intro.1year', 'com.ultimateguitar.ugt.plus.intro.1year2') then s.usd_price * 19.99/39.99
+                else s.usd_price
+            end, 
+            s.datetime, s.event = 'Refunded'
+        ) as refund_revenue_gross,
         argMinIf(-toFloat32OrZero(s.`params.str_value`[indexOf(s.`params.key`, 'usd_refund')]), s.datetime, s.event in ('Upgrade', 'Crossgrade')) as upgrade_revenue,
-        groupArrayIf((s.date, s.usd_price), s.event = 'Charged') as all_charges_arr,
+        groupArrayIf(
+            (
+                s.date, 
+                -- s.usd_price
+                case
+                    when s.product_id in ('com.ultimateguitar.tabs.plus.intro.1year', 'com.ultimateguitar.ugt.plus.intro.1year2') then s.usd_price * 19.99/39.99
+                    else s.usd_price
+                end
+            ), 
+            s.event = 'Charged'
+        ) as all_charges_arr,
         arrayFilter((t, i) -> i = 1 or t.1 != all_charges_arr[i-1].1, all_charges_arr, arrayEnumerate(all_charges_arr)) as all_charges_arr_uniq
     from
         default.ug_subscriptions_events as s
@@ -110,8 +135,8 @@ from (
         {funnel_source_exclude}
     and
         ({custom_sub_having})
-    and
-        unified_id > 0
+    -- and
+    --     unified_id > 0
     -- and
     --     funnel_start_action = 'WebView'
 )

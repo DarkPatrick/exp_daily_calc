@@ -7,6 +7,9 @@
 # design check: надо поделить на количество веток
 # лепестковая диаграмма: "access, %", "charge, %", "100 - 14d churn, %", "arpu", "14d retention, %", "Tab View 60s, %"
 # конверсия триала в любую оплату
+# заливать картинки в конфлюенс пачкой все сразу
+
+
 import sys
 import pandas as pd
 from sql_worker import SqlWorker
@@ -42,14 +45,8 @@ sql_worker: SqlWorker = SqlWorker()
 # import sys
 # sys.exit()
 
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6527)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6530)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6104)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6458)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 5634)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6455)
-# exp_results_gen = ExpResultsGenerator(sql_worker, 6341)
-exp_results_gen = ExpResultsGenerator(sql_worker, 6431)
+# exp_results_gen = ExpResultsGenerator(sql_worker, 6608)
+exp_results_gen = ExpResultsGenerator(sql_worker, 6167)
 
 
 # exp_results_gen.exp_info
@@ -57,8 +54,8 @@ exp_results_gen = ExpResultsGenerator(sql_worker, 6431)
 #     print(platform)
 # print(exp_results_gen.exp_info)
 
-# exp_results_gen.exp_info['date_start'] = 1746809220
-# exp_results_gen.exp_info['date_end'] = 1746985200
+# exp_results_gen.exp_info['date_start'] = 1760371500
+# exp_results_gen.exp_info['date_end'] = 1761034980
 
 
 pattern = r'https://alice\.mu\.se[^\s#?"]*(?:\?[^\s#"]*)?'
@@ -72,6 +69,9 @@ print(url)
 
 confluence = ConfluenceWorker()
 
+# print(confluence.get_page_info_by_title(space_key='CRO', page_title='[DOCS] experiments images dump'))
+# sys.exit()
+
 page_info = confluence.get_page_info(url)
 config_dict_raw = confluence.parse_config_table(page_info['current_content'], exp_results_gen.exp_info['id'])
 config_dict = {}
@@ -79,6 +79,7 @@ funnels = {}
 # config_dict_raw = {'Total': {'pro_rights': 'All', 'platform': 'all', 'include_values': ['Audio2Chords Tour Update'], 'funnel_source_include': ['Audio2Chords Tour Update']}}
 if config_dict_raw == {} or config_dict_raw is None:
     config_dict  = {'Total': {'pro_rights': 'All'}}
+    # config_dict  = {'Total': {'pro_rights': 'Free', 'platform': 'Mobile'}}
     # config_dict  = {'Total': {'pro_rights': 'Free', 'Platform': 'Phone'}, 'Tour accesses only': {'pro_rights': 'Free', 'Platform': 'Phone', 'funnel_source_include': ['Tour Install']}}
     # config_dict  = {'Total': {'pro_rights': 'Free', 'platform': 'Mobile', 'country': 'Asia'}}
 else:
@@ -109,7 +110,9 @@ print(solution)
 page_id = page_info['page_id']
 
 
+print(exp_results_gen.exp_info)
 clients_options = eval(exp_results_gen.exp_info['clients_options'])
+# clients_options = exp_results_gen.exp_info['clients_list']
 print(clients_options)
 
 # sys.exit()
@@ -222,11 +225,51 @@ for client in clients_options:
         file_num = 1
 
         for plot_file in tqdm(list_dir):
-            confluence.upload_image(
-                f'{plot_dir}{plot_file}',
-                f'{os.path.splitext(plot_file)[0]}_{calc_session}_{client}_{segment}.png', page_id)
+            # confluence.upload_image(
+            #     f'{plot_dir}{plot_file}',
+            #     f'{os.path.splitext(plot_file)[0]}_{calc_session}_{client}_{segment}.png', page_id,url
+            # )
+            confluence.upload_or_update_attachment(
+                # page_id=page_id, 
+                page_id=731487347, 
+                file_path=f'{plot_dir}{plot_file}', 
+                file_name=f'{os.path.splitext(plot_file)[0]}_{calc_session}_{client}_{segment}.png', 
+                minor_edit=True
+            )
             file_num += 1
 
 confluence.replace_expand_section(url, f"#{str(exp_results_gen.exp_info['id'])}", full_html_content)
 
 
+
+
+
+# df = pd.read_csv('/Users/egorsemin/Downloads/report (10).csv')
+# df.columns
+# # convert d/mm/yy to datetime
+# df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y')
+# # filter dt by Date between 9 september 2025 and 16 september 2025
+# df = df[(df['Date'] >= pd.to_datetime('2025-09-09 00:00:00')) & (df['Date'] <= pd.to_datetime('2025-09-17 00:00:00'))]
+# # convert to integer with removing commas from string
+# df['Total impressions'] = df['Total impressions'].str.replace(',', '').astype(int)
+# df['Total CPM and CPC revenue ($)'] = df['Total CPM and CPC revenue ($)'].astype(float)
+# df['Total average eCPM ($)'] = df['Total average eCPM ($)'].astype(float)
+# # group by 'Key-values' and calculate sum of 'Total impressions' and 'Total CPM and CPC revenue ($)', and average of 'Total average eCPM ($)'
+# df_grouped = df.groupby('Key-values').agg({
+#     'Total impressions': 'sum',
+#     'Total CPM and CPC revenue ($)': 'sum',
+#     # 'Total CPM and CPC revenue ($)': 'var',
+#     'Total average eCPM ($)': 'mean',
+# }).reset_index()
+# # calculate revenue per impression
+# # df_grouped['Revenue per impression ($)'] = df_grouped['Total CPM and CPC revenue ($)'] / df_grouped['Total impressions']
+# # sort by 'Total impressions' descending
+# df_grouped = df_grouped.sort_values(by='Key-values', ascending=False)
+# print(df_grouped)
+
+
+
+# https://www.ultimate-guitar.com/redirect/universal?ug_target=https%3A%2F%2Fwww.ultimate-guitar.com%2Fpro%2F%3Futm_source%3Demail%26utm_medium%3Dmail%26utm_campaign%3DUG_WW_CRM_EM_WEB_ALL_{{sent_timestamp | from_timestamp('%d%m%y')}}_ALL_OM_BTS2025_PRO_{{customer.segment | upper}}_B%26utm_content%3D{{offer}}&usk={% if aggregates['6389ffec4b27b7054bae3057'] %}{{expressions['639073aab49292c43a9c5463']}}{% elif customer.email %}{{customer.user_auth}}{% else %}{% abort %}{% endif %}&ttl={{expressions['639073aab49292c43a9c545d']}}&sn={% if aggregates['6389ffec4b27b7054bae3057'] %}{{expressions['639073aab49292c43a9c5469'] | hash('sha256')}}{% elif customer.email %}{{expressions['63907434ca04a60213de2b54'] | hash('sha256')}}{% else %}{% abort %}{% endif %}
+# https://www.ultimate-guitar.com/pro/?app_utm_campaign=UG_WW_CRM_EM_WEB_ALL_081025_ALL_OM_BTS2025_PRO_MOB_FREE_B&app_utm_medium=mail&app_utm_source=UltimateGuitar&so=ID&app_utm_content=offer25&od=90&utm_medium=CRM&utm_source=email&utm_campaign=UG_WW_CRM_EM_WEB_ALL_081025_ALL_OM_BTS2025_PRO_MOB_FREE_B
+
+# https://www.ultimate-guitar.com/redirect/universal?ug_target=https%3A%2F%2Fwww.ultimate-guitar.com%2Fpro%2F%3Fapp_utm_campaign%3Demail_BTS2025PRO_blmrch_{{ customer.segment }}_b%26app_utm_medium%3Dmail%26app_utm_source%3DUltimateGuitar%26so%3DID%26app_utm_content%3D{{offer}}%26od%3D90%26utm_medium%3DCRM%26utm_source%3Demail%26utm_campaign%3DUG_WW_CRM_EM_WEB_ALL_{{sent_timestamp | from_timestamp('%d%m%y') }}_ALL_OM_BTS2025_PRO_{{ customer.segment | upper }}_B&usk={% if aggregates['6389ffec4b27b7054bae3057'] %}{{ expressions['639073aab49292c43a9c5463'] }}{% elif customer.email %}{{ customer.user_auth }}{% else %}{% abort %}{% endif %}&ttl={{expressions['639073aab49292c43a9c545d']}}&sn={% if aggregates['6389ffec4b27b7054bae3057'] %}{{expressions['639073aab49292c43a9c5469'] | hash('sha256')}}{% elif customer.email %}{{expressions['63907434ca04a60213de2b54'] | hash('sha256')}}{% else %}{% abort %}{% endif %}&utm_medium=CRM&utm_source=email&utm_campaign=UG_WW_CRM_EM_WEB_ALL_{{sent_timestamp | from_timestamp('%d%m%y') }}_ALL_OM_BTS2025_PRO_{{ customer.segment | upper }}_B
