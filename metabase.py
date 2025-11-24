@@ -4,6 +4,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 from json import dumps
 import time
+import textwrap
 
 
 
@@ -11,6 +12,7 @@ class Mb_Client(BaseModel):
     url: str
     username: str
     password: str = Field(repr=False)
+    api_key: str = Field(default='', repr=False)
     session_header: dict = Field(default_factory=dict, repr=False)
 
 
@@ -19,6 +21,11 @@ class Mb_Client(BaseModel):
 
 
     def get_session(self) -> None:
+        # use api_key if available
+        if self.api_key:
+            setattr(self, "session_header", {"x-api-key": self.api_key})
+            return
+
         credentials: dict = {
             "username": self.username,
             "password": self.password
@@ -54,6 +61,7 @@ class Mb_Client(BaseModel):
 
 # Unexpected response structure: {'database_id': 2, 'started_at': '2025-08-12T19:38:48.673207Z', 'via': [{'status': 'failed', 'class': 'class java.sql.SQLException', 'error': 'Code: 241. DB::Exception: Memory limit (for query) exceeded: would use 9.42 GiB (attempt to allocate chunk of 133366410 bytes), maximum: 9.31 GiB.:
     def post(self, api_endpoint: str, query: str) -> dict:
+        query = textwrap.dedent(query).strip()
         payload: dict = {
             "database": 2,
             "type": "native",

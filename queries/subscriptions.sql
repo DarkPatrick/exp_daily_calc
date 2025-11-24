@@ -12,7 +12,7 @@ select
     end as refund_revenue,
     arraySum(arrayMap(x -> x.2 * 
     case
-        when lower(platform) like '%ios%' and x.1 between toDate(subscribed_dt) and toDate(subscribed_dt) + interval 1 year then 0.7
+        when lower(platform) like '%ios%' and x.1 >= toDate(subscribed_dt) and x.1 < toDate(subscribed_dt) + interval 1 year then 0.7
         when lower(platform) like '%ios%' or lower(platform) like '%and%' then 0.85
         else 1
     end

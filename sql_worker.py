@@ -15,9 +15,10 @@ class SqlWorker():
         secrets: dict = dotenv_values(".env")
 
         self._mb_client: Mb_Client = Mb_Client(
-            url=f"{secrets['mb_url']}",
+            url=f"{secrets['mb_url']}", 
             username=secrets["username"],
-            password=secrets["password"]
+            password=secrets["password"],
+            api_key=secrets.get("mb_api_key", "")
         )
         self._current_segment: CaseInsensitiveDict = CaseInsensitiveDict()
         self._funnels: dict = {}
@@ -89,7 +90,7 @@ class SqlWorker():
 
     def get_experiment(self, id) -> dict:
         query = self.get_query("get_exp_info", params=dict({"id": id}))
-        # print(query)
+        print(query)
         query_result = self._mb_client.post("dataset", query)
         df = query_result
         print(df)
@@ -125,6 +126,7 @@ class SqlWorker():
                 )
                 select * from vars left join bydate using(dt, variation)
             """
+            # query = self.get_query("get_exp_info", params=dict({"id": 6659}))
         else:
             query = f"""
                 with vars as (
