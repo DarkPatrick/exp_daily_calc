@@ -44,7 +44,9 @@ sql_worker: SqlWorker = SqlWorker()
 # import sys
 # sys.exit()
 
-exp_results_gen = ExpResultsGenerator(sql_worker, 6683)
+exp_results_gen = ExpResultsGenerator(sql_worker, 6863)
+
+# The Like–Dislike flow plus the personalized loader clearly lifts engagement (tab views) and short‑term retention on both iOS and Android. However, bundling these with the new paywall/success screen materially harms monetization in the Total population: Variations 3–4 cut ARPU by ~60% and access/charge conversion by ~48–50% on both platforms, and even Variation 2 depresses iOS ARPU by 28%. In contrast, in the Post‑tour segment iOS shows strong monetization gains (lifetime ARPU +40–43%, conversion +24–28%), but with a large spike in refunds (+600–700%), suggesting buyer’s remorse or a mismatch between the promise in the paywall/success screen and delivered value. On Android Post‑tour, basket size (AOV/ARPPU) drops and monthly cancels rise, pointing to paywall/copy or pricing issues. Likely causes: the more aggressive paywall introduces upfront friction that reduces top‑of‑funnel conversion broadly, while the Like–Dislike and personalized loader increase perceived relevance and engagement (hence retention). The success screen and trial mechanics may push low‑intent purchases that later refund/cancel. Recommendation: Do not roll out Variations 3–4 globally. Consider iterating toward a segmented rollout that keeps Like–Dislike + personalized loader but softens or defers the paywall/success flow. If pursued, limit to iOS Post‑tour users behind strict guardrails (ARPU, charge CR, refund rate) and fix the refund spike before any scale. Hold Android until AOV/ARPPU and cancel rates are corrected.
 
 
 # exp_results_gen.exp_info
@@ -109,6 +111,7 @@ page_id = page_info['page_id']
 
 
 print(exp_results_gen.exp_info)
+# exp_results_gen.exp_info["variations"] = 3
 clients_options = eval(exp_results_gen.exp_info['clients_options'])
 # clients_options = exp_results_gen.exp_info['clients_list']
 print(clients_options)

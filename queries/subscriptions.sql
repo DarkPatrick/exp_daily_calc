@@ -44,7 +44,14 @@ from (
         --         s.event = 'Subscribed'
         --         or s.event = 'Charged' and d.notification_type in ('INITIAL_BUY', 'INTERACTIVE_RENEWAL', 'SUBSCRIBED:INITIAL_BUY', 'SUBSCRIBED:RESUBSCRIBE', 'SUBSCRIBED')
         -- ) as platform,
-        argMinIf(toUnixTimestamp(s.datetime_next_billing), s.datetime, s.event = 'Subscribed') as first_charge_expected_dt,
+        argMinIf(
+            -- toUnixTimestamp(s.datetime_next_billing), 
+            case
+                when s.datetime_next_billing < s.datetime then toUnixTimestamp(s.datetime)
+                else toUnixTimestamp(s.datetime_next_billing)
+            end,
+            s.datetime, s.event = 'Subscribed'
+        ) as first_charge_expected_dt,
         -- argMinIf(
         --     if(s.event = 'Subscribed', toUnixTimestamp(s.datetime_next_billing), toUnixTimestamp(s.datetime)), s.datetime, 
         --         s.event = 'Subscribed'
@@ -58,6 +65,7 @@ from (
         -- ) as funnel_source,
         argMinIf(s.funnel_start_action, s.datetime, s.event = 'Subscribed') as funnel_start_action,
         argMinIf(payment_method, datetime, event = 'Subscribed') as payment_method,
+        argMinIf(local_currency, datetime, event = 'Subscribed') as local_currency,
         argMinIf(s.duration_count, s.datetime, s.event = 'Subscribed') as duration_count,
         argMinIf(s.base_price, s.datetime, s.event = 'Subscribed') as base_price,
         argMinIf(s.content_id, s.datetime, s.event = 'Subscribed') as content_id,
